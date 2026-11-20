@@ -1,0 +1,6 @@
+{
+  "name": "Chop 'n Chill Restaurant & Lounge — Kasoa",
+  "description": "Luxury Afro-modern restaurant, dining, upstairs terrace, weekend live-band lounge, and staff operations dashboard for Chop 'n Chill in Kasoa, Ghana.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
