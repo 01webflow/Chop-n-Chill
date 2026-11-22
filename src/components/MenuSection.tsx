@@ -1,4 +1,5 @@
 import { Phone, Plus, Search, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
 import { MENU_CATEGORIES, MenuCategory, MenuItem } from '../types';
 
@@ -13,6 +14,7 @@ interface MenuSectionProps {
 export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }: MenuSectionProps) {
   const [activeCategory, setActiveCategory] = useState<'All' | MenuCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const shouldReduceMotion = useReducedMotion();
 
   const filteredMenu = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -31,7 +33,13 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
     <section id="menu" className="py-20 sm:py-28 bg-[#101010]">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         {/* Header Row */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#F8F4EC]/12">
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.55 }}
+          className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#F8F4EC]/12"
+        >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#C9A45C] mb-3">
               Our Menu
@@ -61,7 +69,7 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
               <span>Call To Order</span>
             </a>
           </div>
-        </div>
+        </motion.div>
 
         {/* Category Filter Tabs & Search */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 my-8">
@@ -121,10 +129,14 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredMenu.map((item) => (
-              <article
+            {filteredMenu.map((item, idx) => (
+              <motion.article
                 key={item.id}
-                className="group flex flex-col bg-[#1C1C1C] border border-[#F8F4EC]/10 hover:border-[#C9A45C]/45 rounded-sm overflow-hidden transition-colors"
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 0.45, delay: Math.min(idx * 0.05, 0.25) }}
+                className="group flex flex-col bg-gradient-to-b from-[#1C1C1C] to-[#161616] border border-[#F8F4EC]/10 hover:border-[#C9A45C]/55 hover:-translate-y-1 rounded-sm overflow-hidden transition-all duration-300 shadow-lg hover:shadow-2xl"
               >
                 <div className="relative aspect-[4/3] bg-[#141414] overflow-hidden">
                   {item.image ? (
@@ -133,7 +145,7 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
                       alt={`${item.name} (${item.imageVerified ? 'Chop n Chill photo' : 'Illustrative dish photo'})`}
                       referrerPolicy="no-referrer"
                       loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-[#1C1C1C] to-[#173C30]/40">
@@ -145,7 +157,7 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
-                      background: 'linear-gradient(to top, rgba(16,16,16,0.7) 0%, transparent 45%)',
+                      background: 'linear-gradient(to top, rgba(16,16,16,0.72) 0%, transparent 48%)',
                     }}
                   />
                 </div>
@@ -186,7 +198,7 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
                     )}
                   </div>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         )}

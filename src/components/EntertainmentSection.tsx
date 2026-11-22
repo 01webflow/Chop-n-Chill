@@ -1,4 +1,5 @@
 import { Calendar, Clock, Music2 } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { EventItem } from '../types';
 
 interface EntertainmentSectionProps {
@@ -7,6 +8,8 @@ interface EntertainmentSectionProps {
 }
 
 export function EntertainmentSection({ events, liveImage }: EntertainmentSectionProps) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <section
       id="entertainment"
@@ -17,7 +20,13 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
     >
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         {/* Top Immersive Split */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-stretch mb-16">
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-stretch mb-16"
+        >
           <div className="lg:col-span-5 flex flex-col justify-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DFC082] mb-4">
               Live Entertainment &amp; Lounge
@@ -35,7 +44,7 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
             <div>
               <a
                 href="#upcoming-events"
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-sm bg-[#C9A45C] text-[#101010] text-xs font-semibold uppercase tracking-[0.15em] hover:bg-[#DFC082] transition-colors whitespace-nowrap shrink-0 min-h-[46px]"
+                className="inline-flex items-center justify-center px-7 py-3.5 rounded-sm bg-[#C9A45C] text-[#101010] text-xs font-semibold uppercase tracking-[0.15em] hover:bg-[#DFC082] hover:-translate-y-0.5 transition-all whitespace-nowrap shrink-0 min-h-[46px]"
               >
                 Explore Upcoming Events
               </a>
@@ -43,7 +52,7 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
           </div>
 
           <div className="lg:col-span-7">
-            <div className="relative h-full min-h-[320px] sm:min-h-[400px] rounded-sm overflow-hidden border border-[#C9A45C]/30 bg-[#101010]">
+            <div className="relative h-full min-h-[320px] sm:min-h-[400px] rounded-sm overflow-hidden border border-[#C9A45C]/30 bg-[#101010] shadow-2xl">
               <img
                 src={liveImage}
                 alt="Illustrative live band lounge atmosphere concept"
@@ -63,7 +72,7 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Editable Upcoming Events Board */}
         <div id="upcoming-events" className="pt-12 border-t border-[#F8F4EC]/15">
@@ -73,7 +82,7 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
                 Upcoming Events &amp; Live Sessions
               </h3>
               <p className="text-sm text-[#C8BFA8]">
-                Unverified dates are never fabricated—slots below are editable by Chop 'n Chill management as schedules are confirmed.
+                Unverified dates are never fabricated—slots below are editable by Chop &apos;n Chill management as schedules are confirmed.
               </p>
             </div>
             <a
@@ -85,10 +94,14 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {events.map((ev) => (
-              <article
+            {events.map((ev, idx) => (
+              <motion.article
                 key={ev.id}
-                className="flex flex-col sm:flex-row gap-5 p-5 rounded-sm bg-[#101010]/80 border border-[#C9A45C]/25"
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 0.45, delay: idx * 0.08 }}
+                className="flex flex-col sm:flex-row gap-5 p-5 rounded-sm bg-[#101010]/85 border border-[#C9A45C]/25 hover:border-[#C9A45C]/55 transition-colors shadow-lg"
               >
                 <div className="sm:w-44 aspect-[4/3] sm:aspect-auto sm:h-auto shrink-0 rounded-sm overflow-hidden bg-[#1C1C1C]">
                   {ev.promoImage ? (
@@ -135,7 +148,7 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
                     </a>
                   </div>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         </div>

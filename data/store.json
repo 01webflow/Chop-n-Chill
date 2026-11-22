@@ -1,5 +1,14 @@
 {
   "adminCredentialHash": null,
+  "staffCredentialHash": null,
+  "aiConfig": {
+    "receptionistName": "AI Concierge",
+    "personalityPrompt": "Warm, polished, attentive Ghanaian hospitality host for Chop 'n Chill Restaurant & Lounge in Kasoa. Conversational, concise, welcoming, and always honest about editable placeholders or pending reservations.",
+    "customKnowledgeBase": "Highlight our indoor dining room, outdoor courtyard, and breezy upstairs terrace. Remind guests that weekend live-band schedules and GH₵ menu prices marked TBD are confirmed directly by management or on WhatsApp (+233 55 490 3755).",
+    "voiceEnabled": true,
+    "retentionDays": 14,
+    "updatedAt": "2026-11-21T15:10:20.648Z"
+  },
   "settings": {
     "businessName": "Chop 'n Chill Restaurant & Lounge",
     "address": "HH3J+G5M, Kasoa, Ghana",
@@ -191,6 +200,50 @@
       "isVerifiedVenuePhoto": false
     }
   ],
+  "faqs": [
+    {
+      "id": "faq-parking",
+      "category": "Location & Parking",
+      "question": "Is parking available at Chop 'n Chill in Kasoa?",
+      "answer": "Please call +233 55 490 3755 or message us on WhatsApp prior to your visit to confirm current parking access near HH3J+G5M, Kasoa—especially during peak weekend live-band evenings. Management can publish exact parking details in the Owner Portal.",
+      "isPlaceholder": true
+    },
+    {
+      "id": "faq-directions",
+      "category": "Location & Parking",
+      "question": "Where is Chop 'n Chill located and what are your opening hours?",
+      "answer": "We are located at HH3J+G5M, Kasoa, Ghana (linked directly on Google Maps). Current opening hours are editable by management—please call +233 55 490 3755 to confirm daily hours before visiting.",
+      "isPlaceholder": true
+    },
+    {
+      "id": "faq-deposits",
+      "category": "Reservations",
+      "question": "Do you require a deposit for table reservations or group bookings?",
+      "answer": "Submitting a reservation request on our website does not charge any payment or deposit upfront, and your booking is only confirmed once Chop 'n Chill staff respond. Any deposit requirement for large groups or reserved terrace tables is confirmed directly by our host team.",
+      "isPlaceholder": true
+    },
+    {
+      "id": "faq-dietary",
+      "category": "Menu & Dietary",
+      "question": "Can you accommodate dietary preferences or food allergies?",
+      "answer": "Please share allergies, spice levels, or dietary requests in the Special Requests field when reserving or ordering, and verify ingredients directly with our kitchen staff at +233 55 490 3755 before ordering.",
+      "isPlaceholder": true
+    },
+    {
+      "id": "faq-services",
+      "category": "Menu & Dietary",
+      "question": "Do you offer takeaway and delivery in Kasoa?",
+      "answer": "Yes — Dine-in, Takeaway, and Delivery are available. Use our Order Enquiry Tray or call +233 55 490 3755 to confirm dish pricing in GH₵ and delivery coverage for your area.",
+      "isPlaceholder": false
+    },
+    {
+      "id": "faq-spaces",
+      "category": "Lounge & Live Band",
+      "question": "What seating options and live entertainment are available?",
+      "answer": "Chop 'n Chill Restaurant & Lounge offers indoor dining, outdoor dining, and an upstairs terrace, plus weekend live-band entertainment suited for romantic dates, family dining, and group hangouts.",
+      "isPlaceholder": false
+    }
+  ],
   "tables": [
     {
       "id": "T-01",
@@ -229,5 +282,7 @@
     }
   ],
   "orders": [],
-  "reservations": []
+  "reservations": [],
+  "conversations": [],
+  "escalations": []
 }

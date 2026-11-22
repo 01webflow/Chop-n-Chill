@@ -1,14 +1,32 @@
 import crypto from 'crypto';
 import dotenv from 'dotenv';
-import express, { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import express from 'express';
 import fs from 'fs';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import type { LiveServerMessage } from '@google/genai';
+import { Modality } from '@google/genai';
+import { WebSocketServer } from 'ws';
 import {
+  buildConciergeSystemInstruction,
+  CONCIERGE_TOOL_DECLARATIONS,
+  createGeminiClient,
+  executeConciergeTool,
+  runConciergeChatTurn,
+  sanitizeTranscriptText,
+} from './server/aiConcierge.ts';
+import type {
+  AiConciergeConfig,
+  AiConversationLog,
   DiningTable,
   EventItem,
+  FaqCategory,
+  FaqItem,
   GalleryItem,
-  MENU_CATEGORIES,
+  HumanEscalationRequest,
+  MenuCategory,
   MenuItem,
   OrderLineItem,
   OrderRecord,
@@ -16,9 +34,19 @@ import {
   ReservationRequest,
   ReservationStatus,
   RestaurantSettings,
-} from './src/types';
+  StaffRole,
+} from './src/types.ts';
 
 dotenv.config();
+
+const MENU_CATEGORIES: MenuCategory[] = [
+  'Ghanaian Specialties',
+  'Rice Dishes',
+  'Grills & Barbecue',
+  'Appetizers & Small Chops',
+  'Drinks & Beverages',
+  "Chef's Specials",
+];
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,17 +57,35 @@ const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toSt
 
 interface PersistedStore {
   adminCredentialHash: string | null;
+  staffCredentialHash: string | null;
   settings: RestaurantSettings;
+  aiConfig: AiConciergeConfig;
   menu: MenuItem[];
   events: EventItem[];
   gallery: GalleryItem[];
+  faqs: FaqItem[];
   tables: DiningTable[];
   orders: OrderRecord[];
   reservations: ReservationRequest[];
+  conversations: AiConversationLog[];
+  escalations: HumanEscalationRequest[];
 }
+
+const DEFAULT_AI_CONFIG: AiConciergeConfig = {
+  receptionistName: 'AI Concierge',
+  personalityPrompt:
+    "Warm, polished, attentive Ghanaian hospitality host for Chop 'n Chill Restaurant & Lounge in Kasoa. Conversational, concise, welcoming, and always honest about editable placeholders or pending reservations.",
+  customKnowledgeBase:
+    'Highlight our indoor dining room, outdoor courtyard, and breezy upstairs terrace. Remind guests that weekend live-band schedules and GH₵ menu prices marked TBD are confirmed directly by management or on WhatsApp (+233 55 490 3755).',
+  voiceEnabled: true,
+  retentionDays: 14,
+  updatedAt: new Date().toISOString(),
+};
 
 const DEFAULT_STORE: PersistedStore = {
   adminCredentialHash: null,
+  staffCredentialHash: null,
+  aiConfig: DEFAULT_AI_CONFIG,
   settings: {
     businessName: "Chop 'n Chill Restaurant & Lounge",
     address: 'HH3J+G5M, Kasoa, Ghana',
@@ -154,7 +200,7 @@ const DEFAULT_STORE: PersistedStore = {
       date: 'Upcoming Date TBD',
       startTime: 'Start Time TBD',
       performers: 'Featured Performers TBD',
-      description: 'Live-band entertainment is part of the Chop \'n Chill weekend lounge experience. Management can publish verified dates, performers, and start times here.',
+      description: "Live-band entertainment is part of the Chop 'n Chill weekend lounge experience. Management can publish verified dates, performers, and start times here.",
       promoImage: '/src/assets/images/live_band_lounge_1795211571900.jpg',
       isPlaceholder: true,
     },
@@ -164,7 +210,7 @@ const DEFAULT_STORE: PersistedStore = {
       date: 'Upcoming Date TBD',
       startTime: 'Start Time TBD',
       performers: 'Host / Band TBD',
-      description: 'An editable upcoming-event slot for group hangouts, acoustic sets, or special celebrations at Chop \'n Chill Kasoa.',
+      description: "An editable upcoming-event slot for group hangouts, acoustic sets, or special celebrations at Chop 'n Chill Kasoa.",
       promoImage: '/src/assets/images/about_terrace_dining_1795211571923.jpg',
       isPlaceholder: true,
     },
@@ -175,7 +221,7 @@ const DEFAULT_STORE: PersistedStore = {
       title: 'Evening Exterior & Warm Lighting',
       category: 'Exterior',
       image: '/src/assets/images/hero_chop_chill_exterior_1795211571468.jpg',
-      caption: 'Illustrative architectural concept — upload a verified Chop \'n Chill exterior photo in the Owner Portal.',
+      caption: "Illustrative architectural concept — upload a verified Chop 'n Chill exterior photo in the Owner Portal.",
       isVerifiedVenuePhoto: false,
     },
     {
@@ -219,6 +265,56 @@ const DEFAULT_STORE: PersistedStore = {
       isVerifiedVenuePhoto: false,
     },
   ],
+  faqs: [
+    {
+      id: 'faq-parking',
+      category: 'Location & Parking',
+      question: "Is parking available at Chop 'n Chill in Kasoa?",
+      answer:
+        "Please call +233 55 490 3755 or message us on WhatsApp prior to your visit to confirm current parking access near HH3J+G5M, Kasoa—especially during peak weekend live-band evenings. Management can publish exact parking details in the Owner Portal.",
+      isPlaceholder: true,
+    },
+    {
+      id: 'faq-directions',
+      category: 'Location & Parking',
+      question: "Where is Chop 'n Chill located and what are your opening hours?",
+      answer:
+        'We are located at HH3J+G5M, Kasoa, Ghana (linked directly on Google Maps). Current opening hours are editable by management—please call +233 55 490 3755 to confirm daily hours before visiting.',
+      isPlaceholder: true,
+    },
+    {
+      id: 'faq-deposits',
+      category: 'Reservations',
+      question: 'Do you require a deposit for table reservations or group bookings?',
+      answer:
+        "Submitting a reservation request on our website does not charge any payment or deposit upfront, and your booking is only confirmed once Chop 'n Chill staff respond. Any deposit requirement for large groups or reserved terrace tables is confirmed directly by our host team.",
+      isPlaceholder: true,
+    },
+    {
+      id: 'faq-dietary',
+      category: 'Menu & Dietary',
+      question: 'Can you accommodate dietary preferences or food allergies?',
+      answer:
+        'Please share allergies, spice levels, or dietary requests in the Special Requests field when reserving or ordering, and verify ingredients directly with our kitchen staff at +233 55 490 3755 before ordering.',
+      isPlaceholder: true,
+    },
+    {
+      id: 'faq-services',
+      category: 'Menu & Dietary',
+      question: 'Do you offer takeaway and delivery in Kasoa?',
+      answer:
+        'Yes — Dine-in, Takeaway, and Delivery are available. Use our Order Enquiry Tray or call +233 55 490 3755 to confirm dish pricing in GH₵ and delivery coverage for your area.',
+      isPlaceholder: false,
+    },
+    {
+      id: 'faq-spaces',
+      category: 'Lounge & Live Band',
+      question: 'What seating options and live entertainment are available?',
+      answer:
+        "Chop 'n Chill Restaurant & Lounge offers indoor dining, outdoor dining, and an upstairs terrace, plus weekend live-band entertainment suited for romantic dates, family dining, and group hangouts.",
+      isPlaceholder: false,
+    },
+  ],
   tables: [
     { id: 'T-01', name: 'Indoor Table 01', area: 'Indoor Dining', capacity: 4, status: 'Available' },
     { id: 'T-02', name: 'Indoor Booth 02', area: 'Indoor Dining', capacity: 6, status: 'Available' },
@@ -228,36 +324,88 @@ const DEFAULT_STORE: PersistedStore = {
   ],
   orders: [],
   reservations: [],
+  conversations: [],
+  escalations: [],
 };
 
+let memoryStoreFallback: PersistedStore | null = null;
+
+function normalizeFaqCategory(cat: string): FaqCategory {
+  if (cat === 'Visit & Parking' || cat === 'Location & Parking') return 'Location & Parking';
+  if (cat === 'Reservations & Deposits' || cat === 'Reservations') return 'Reservations';
+  if (cat === 'Dietary & Kitchen' || cat === 'Menu & Dietary') return 'Menu & Dietary';
+  return 'Lounge & Live Band';
+}
+
+function normalizeReservationStatus(status: string): ReservationStatus {
+  if (status === 'Confirmed') return 'Confirmed';
+  if (status === 'Declined') return 'Declined';
+  if (status === 'Cancelled') return 'Cancelled';
+  return 'Pending';
+}
+
+function pruneExpiredConversations(store: PersistedStore): void {
+  const days = Math.max(1, Math.min(90, store.aiConfig.retentionDays || 14));
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  store.conversations = store.conversations
+    .filter((c) => {
+      const ts = Date.parse(c.lastMessageAt || c.startedAt);
+      return Number.isNaN(ts) || ts >= cutoff;
+    })
+    .slice(0, 120);
+}
+
 function ensureStore(): PersistedStore {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(STORE_PATH)) {
-    fs.writeFileSync(STORE_PATH, JSON.stringify(DEFAULT_STORE, null, 2), 'utf8');
-    return structuredClone(DEFAULT_STORE);
+  if (memoryStoreFallback) {
+    pruneExpiredConversations(memoryStoreFallback);
+    return memoryStoreFallback;
   }
   try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(STORE_PATH)) {
+      fs.writeFileSync(STORE_PATH, JSON.stringify(DEFAULT_STORE, null, 2), 'utf8');
+      return structuredClone(DEFAULT_STORE);
+    }
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
     const parsed = JSON.parse(raw) as Partial<PersistedStore>;
-    return {
+    const rawFaqs = Array.isArray(parsed.faqs) && parsed.faqs.length > 0 ? parsed.faqs : DEFAULT_STORE.faqs;
+    const rawReservations = Array.isArray(parsed.reservations) ? parsed.reservations : [];
+    const hydrated: PersistedStore = {
       ...structuredClone(DEFAULT_STORE),
       ...parsed,
+      aiConfig: { ...DEFAULT_AI_CONFIG, ...(parsed.aiConfig || {}) },
+      faqs: rawFaqs.map((f) => ({ ...f, category: normalizeFaqCategory(String(f.category)) })),
+      reservations: rawReservations.map((r) => ({
+        ...r,
+        status: normalizeReservationStatus(String(r.status)),
+      })),
+      conversations: Array.isArray(parsed.conversations) ? parsed.conversations : [],
+      escalations: Array.isArray(parsed.escalations) ? parsed.escalations : [],
       settings: { ...DEFAULT_STORE.settings, ...(parsed.settings || {}) },
     };
+    pruneExpiredConversations(hydrated);
+    return hydrated;
   } catch {
-    return structuredClone(DEFAULT_STORE);
+    memoryStoreFallback = structuredClone(DEFAULT_STORE);
+    return memoryStoreFallback;
   }
 }
 
 function writeStore(store: PersistedStore): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  pruneExpiredConversations(store);
+  memoryStoreFallback = store;
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    const tmpPath = `${STORE_PATH}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf8');
+    fs.renameSync(tmpPath, STORE_PATH);
+  } catch {
+    // Keep memoryStoreFallback active if container filesystem is read-only
   }
-  const tmpPath = `${STORE_PATH}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf8');
-  fs.renameSync(tmpPath, STORE_PATH);
 }
 
 function hashPasscode(passcode: string): string {
@@ -281,10 +429,10 @@ function constantTimeStringMatch(a: string, b: string): boolean {
   return crypto.timingSafeEqual(aHash, bHash);
 }
 
-function signSessionToken(): string {
+function signSessionToken(role: StaffRole): string {
   const payload = Buffer.from(
     JSON.stringify({
-      role: 'owner',
+      role,
       exp: Date.now() + 1000 * 60 * 60 * 12,
     })
   ).toString('base64url');
@@ -292,21 +440,25 @@ function signSessionToken(): string {
   return `${payload}.${sig}`;
 }
 
-function verifySessionToken(token: string): boolean {
+function verifySessionToken(token: string): StaffRole | null {
   const parts = token.split('.');
-  if (parts.length !== 2) return false;
+  if (parts.length !== 2) return null;
   const [payload, sig] = parts;
   const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
   const sigBuf = Buffer.from(sig);
   const expectedBuf = Buffer.from(expectedSig);
   if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
-    return false;
+    return null;
   }
   try {
-    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { exp?: number };
-    return typeof decoded.exp === 'number' && decoded.exp > Date.now();
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      exp?: number;
+      role?: StaffRole;
+    };
+    if (typeof decoded.exp !== 'number' || decoded.exp <= Date.now()) return null;
+    return decoded.role === 'staff' ? 'staff' : 'owner';
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -334,13 +486,14 @@ function isSafeExternalUrl(url: string): boolean {
   }
 }
 
-// Simple in-memory IP rate limiter for public submissions
+// Per-IP rate limiter
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
-function checkRateLimit(ip: string, max = 15): boolean {
+function checkRateLimit(ip: string, bucket: string, max = 15, windowMs = 15 * 60 * 1000): boolean {
+  const key = `${bucket}:${ip}`;
   const now = Date.now();
-  const entry = rateLimits.get(ip);
+  const entry = rateLimits.get(key);
   if (!entry || entry.resetAt < now) {
-    rateLimits.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
+    rateLimits.set(key, { count: 1, resetAt: now + windowMs });
     return true;
   }
   if (entry.count >= max) return false;
@@ -348,18 +501,77 @@ function checkRateLimit(ip: string, max = 15): boolean {
   return true;
 }
 
-function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+interface AuthenticatedRequest extends Request {
+  staffRole?: StaffRole;
+}
+
+function requireStaffOrOwner(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
-  if (!token || !verifySessionToken(token)) {
+  const role = token ? verifySessionToken(token) : null;
+  if (!role) {
     res.status(401).json({ error: 'Unauthorized. Please sign in to the Staff & Owner Portal.' });
     return;
   }
+  req.staffRole = role;
   next();
+}
+
+function requireOwner(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  const auth = req.headers.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  const role = token ? verifySessionToken(token) : null;
+  if (!role) {
+    res.status(401).json({ error: 'Unauthorized. Please sign in.' });
+    return;
+  }
+  if (role !== 'owner') {
+    res.status(403).json({ error: 'Owner privileges are required for this configuration change.' });
+    return;
+  }
+  req.staffRole = role;
+  next();
+}
+
+function recordConversationTurn(
+  store: PersistedStore,
+  sessionId: string,
+  channel: 'chat' | 'voice',
+  role: 'user' | 'assistant',
+  text: string,
+  toolsUsed?: string[]
+): void {
+  const cleanText = sanitizeTranscriptText(text).slice(0, 1500);
+  if (!cleanText) return;
+  const now = new Date().toISOString();
+  let conv = store.conversations.find((c) => c.sessionId === sessionId && c.channel === channel);
+  if (!conv) {
+    conv = {
+      id: `CONV-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+      sessionId,
+      channel,
+      startedAt: now,
+      lastMessageAt: now,
+      turns: [],
+      escalatedToHuman: false,
+    };
+    store.conversations.unshift(conv);
+  }
+  conv.lastMessageAt = now;
+  conv.turns.push({
+    role,
+    text: cleanText,
+    timestamp: now,
+    toolsUsed: toolsUsed && toolsUsed.length > 0 ? toolsUsed : undefined,
+  });
+  if (conv.turns.length > 40) {
+    conv.turns = conv.turns.slice(-40);
+  }
 }
 
 async function startServer() {
   const app = express();
+  const server = http.createServer(app);
   app.use(express.json({ limit: '3mb' }));
 
   // Auth status
@@ -369,8 +581,8 @@ async function startServer() {
     const mode = envPass ? 'env' : store.adminCredentialHash ? 'claimed' : 'unclaimed';
     const auth = req.headers.authorization || '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
-    const authenticated = Boolean(token && verifySessionToken(token));
-    res.json({ mode, authenticated });
+    const role = token ? verifySessionToken(token) : null;
+    res.json({ mode, authenticated: Boolean(role), role: role || undefined });
   });
 
   // One-time first-run owner setup when ADMIN_PASSCODE env is unset and no hash saved
@@ -392,11 +604,16 @@ async function startServer() {
     }
     store.adminCredentialHash = hashPasscode(passcode);
     writeStore(store);
-    res.json({ token: signSessionToken(), mode: 'claimed' });
+    res.json({ token: signSessionToken('owner'), mode: 'claimed', role: 'owner' });
   });
 
-  // Staff / Owner Login
+  // Staff / Owner Login with RBAC
   app.post('/api/auth/login', (req, res) => {
+    const ip = req.ip || 'unknown';
+    if (!checkRateLimit(ip, 'login', 20, 15 * 60 * 1000)) {
+      res.status(429).json({ error: 'Too many sign-in attempts. Please wait a few minutes.' });
+      return;
+    }
     const passcode = typeof req.body?.passcode === 'string' ? req.body.passcode.trim() : '';
     if (!passcode) {
       res.status(400).json({ error: 'Please enter your passcode.' });
@@ -406,11 +623,15 @@ async function startServer() {
     const store = ensureStore();
 
     if (envPass) {
-      if (!constantTimeStringMatch(passcode, envPass)) {
-        res.status(401).json({ error: 'Invalid passcode.' });
+      if (constantTimeStringMatch(passcode, envPass)) {
+        res.json({ token: signSessionToken('owner'), mode: 'env', role: 'owner' });
         return;
       }
-      res.json({ token: signSessionToken(), mode: 'env' });
+      if (store.staffCredentialHash && verifyScryptHash(passcode, store.staffCredentialHash)) {
+        res.json({ token: signSessionToken('staff'), mode: 'env', role: 'staff' });
+        return;
+      }
+      res.status(401).json({ error: 'Invalid passcode.' });
       return;
     }
 
@@ -419,14 +640,20 @@ async function startServer() {
       return;
     }
 
-    if (!verifyScryptHash(passcode, store.adminCredentialHash)) {
-      res.status(401).json({ error: 'Invalid passcode.' });
+    if (verifyScryptHash(passcode, store.adminCredentialHash)) {
+      res.json({ token: signSessionToken('owner'), mode: 'claimed', role: 'owner' });
       return;
     }
-    res.json({ token: signSessionToken(), mode: 'claimed' });
+
+    if (store.staffCredentialHash && verifyScryptHash(passcode, store.staffCredentialHash)) {
+      res.json({ token: signSessionToken('staff'), mode: 'claimed', role: 'staff' });
+      return;
+    }
+
+    res.status(401).json({ error: 'Invalid passcode.' });
   });
 
-  // Public Store Data (never exposes private reservations, orders, or credentials)
+  // Public Store Data (never exposes private reservations, orders, transcripts, or credentials)
   app.get('/api/public', (_req, res) => {
     const store = ensureStore();
     res.json({
@@ -434,6 +661,11 @@ async function startServer() {
       menu: store.menu,
       events: store.events,
       gallery: store.gallery,
+      faqs: store.faqs,
+      aiPublicConfig: {
+        receptionistName: store.aiConfig.receptionistName,
+        voiceEnabled: store.aiConfig.voiceEnabled,
+      },
       tableSummary: {
         total: store.tables.length,
         available: store.tables.filter((t) => t.status === 'Available').length,
@@ -442,15 +674,145 @@ async function startServer() {
     });
   });
 
-  // Public Reservation Submission
-  app.post('/api/reservations', (req, res) => {
+  // Autonomous AI Concierge Chat Endpoint (Server-Side Gemini + 9 Tools)
+  app.post('/api/ai/chat', async (req, res) => {
     const ip = req.ip || 'unknown';
-    if (!checkRateLimit(ip)) {
+    if (!checkRateLimit(ip, 'ai-chat', 40, 10 * 60 * 1000)) {
+      res.status(429).json({
+        error: 'Rate limit reached for AI Concierge. Please call +233 55 490 3755 or use WhatsApp.',
+      });
+      return;
+    }
+
+    const body = req.body || {};
+    const message = typeof body.message === 'string' ? body.message.trim().slice(0, 1200) : '';
+    const sessionId =
+      typeof body.sessionId === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(body.sessionId)
+        ? body.sessionId
+        : `web-${crypto.randomBytes(6).toString('hex')}`;
+    const rawHistory = Array.isArray(body.history) ? body.history : [];
+    const history = rawHistory
+      .filter(
+        (h: { role?: unknown; text?: unknown }) =>
+          (h?.role === 'user' || h?.role === 'assistant') && typeof h?.text === 'string'
+      )
+      .slice(-14)
+      .map((h: { role: 'user' | 'assistant'; text: string }) => ({
+        role: h.role,
+        text: h.text.slice(0, 1200),
+      }));
+
+    if (!message) {
+      res.status(400).json({ error: 'Please enter a message.' });
+      return;
+    }
+
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+    if (!apiKey) {
+      res.status(503).json({
+        error:
+          'AI Concierge is temporarily unavailable because GEMINI_API_KEY is not configured on the server. Use WhatsApp or call +233 55 490 3755 directly.',
+      });
+      return;
+    }
+
+    const store = ensureStore();
+    try {
+      const result = await runConciergeChatTurn({
+        apiKey,
+        store,
+        history,
+        userMessage: message,
+        sessionId,
+        onWriteStore: () => writeStore(store),
+      });
+
+      recordConversationTurn(store, sessionId, 'chat', 'user', message);
+      recordConversationTurn(store, sessionId, 'chat', 'assistant', result.reply, result.toolsUsed);
+      writeStore(store);
+
+      res.json({
+        sessionId,
+        reply: result.reply,
+        toolsUsed: result.toolsUsed,
+        whatsappUrl: result.whatsappUrl,
+        escalationId: result.escalationId,
+        reservationId: result.reservationId,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'AI service error.';
+      console.error('[AI Chat Error]', {
+        message: msg,
+        hasGeminiBaseUrl: Boolean(process.env.GOOGLE_GEMINI_BASE_URL),
+        useVertexAi: process.env.GOOGLE_GENAI_USE_VERTEXAI || 'false',
+      });
+      res.status(502).json({
+        error: `AI Concierge encountered an error (${msg}). Please call +233 55 490 3755 or send a WhatsApp enquiry.`,
+      });
+    }
+  });
+
+  // Explicit Guest-Triggered Human Handoff Endpoint (also works if AI/Voice fails)
+  app.post('/api/ai/handoff', (req, res) => {
+    const ip = req.ip || 'unknown';
+    if (!checkRateLimit(ip, 'handoff', 15, 15 * 60 * 1000)) {
       res.status(429).json({ error: 'Too many requests. Please call +233 55 490 3755 directly.' });
       return;
     }
     const body = req.body || {};
-    // Honeypot spam check
+    const store = ensureStore();
+    const guestName =
+      typeof body.guestName === 'string' && body.guestName.trim()
+        ? sanitizeTranscriptText(body.guestName).slice(0, 80)
+        : 'Website Visitor';
+    const guestContact =
+      typeof body.guestContact === 'string'
+        ? sanitizeTranscriptText(body.guestContact).slice(0, 60)
+        : 'Not provided';
+    const reason =
+      typeof body.reason === 'string' && body.reason.trim()
+        ? sanitizeTranscriptText(body.reason).slice(0, 160)
+        : 'Guest requested human staff support';
+    const summary =
+      typeof body.summary === 'string' && body.summary.trim()
+        ? sanitizeTranscriptText(body.summary).slice(0, 800)
+        : 'Guest clicked Request Human Support in AI Concierge.';
+    const sessionId = typeof body.sessionId === 'string' ? body.sessionId.slice(0, 64) : undefined;
+
+    const escalation: HumanEscalationRequest = {
+      id: `ESC-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+      conversationId: sessionId,
+      guestName,
+      guestContact,
+      reason,
+      summary,
+      channel: 'staff-inbox',
+      status: 'Open',
+      createdAt: new Date().toISOString(),
+    };
+    store.escalations.unshift(escalation);
+    if (sessionId) {
+      const conv = store.conversations.find((c) => c.sessionId === sessionId);
+      if (conv) conv.escalatedToHuman = true;
+    }
+    writeStore(store);
+
+    const waText = `Staff Assistance Request (${escalation.id})\nGuest: ${guestName}\nContact: ${guestContact}\nReason: ${reason}\nSummary: ${summary}`;
+    res.status(201).json({
+      escalation,
+      directPhone: store.settings.phone,
+      whatsappUrl: `https://wa.me/${store.settings.whatsappNumber}?text=${encodeURIComponent(waText)}`,
+    });
+  });
+
+  // Public Reservation Submission
+  app.post('/api/reservations', (req, res) => {
+    const ip = req.ip || 'unknown';
+    if (!checkRateLimit(ip, 'reservations', 15)) {
+      res.status(429).json({ error: 'Too many requests. Please call +233 55 490 3755 directly.' });
+      return;
+    }
+    const body = req.body || {};
     if (typeof body.website === 'string' && body.website.trim().length > 0) {
       res.status(400).json({ error: 'Invalid submission.' });
       return;
@@ -496,7 +858,8 @@ async function startServer() {
       guests,
       seatingPreference: (allowedSeating.includes(seatingPreference) ? seatingPreference : 'No Preference') as ReservationRequest['seatingPreference'],
       specialRequests,
-      status: 'Pending Staff Response',
+      status: 'Pending',
+      source: 'Web Form',
       createdAt: new Date().toISOString(),
     };
 
@@ -518,7 +881,7 @@ async function startServer() {
   // Public Order Enquiry Submission
   app.post('/api/orders', (req, res) => {
     const ip = req.ip || 'unknown';
-    if (!checkRateLimit(ip, 25)) {
+    if (!checkRateLimit(ip, 'orders', 25)) {
       res.status(429).json({ error: 'Too many requests. Please call +233 55 490 3755 directly.' });
       return;
     }
@@ -580,17 +943,36 @@ async function startServer() {
     res.status(201).json({ order });
   });
 
-  // Admin Full Data
-  app.get('/api/admin/store', requireAdmin, (_req, res) => {
+  // Admin Full Data (Staff & Owner)
+  app.get('/api/admin/store', requireStaffOrOwner, (req: AuthenticatedRequest, res) => {
     const store = ensureStore();
+    const role: StaffRole = req.staffRole || 'staff';
     res.json({
+      role,
+      staffPasscodeConfigured: Boolean(store.staffCredentialHash),
       settings: store.settings,
       menu: store.menu,
       events: store.events,
       gallery: store.gallery,
+      faqs: store.faqs,
       tables: store.tables,
       orders: store.orders,
       reservations: store.reservations,
+      aiPublicConfig: {
+        receptionistName: store.aiConfig.receptionistName,
+        voiceEnabled: store.aiConfig.voiceEnabled,
+      },
+      aiConfig: store.aiConfig,
+      conversations: store.conversations,
+      escalations: store.escalations,
+      analytics: {
+        totalConversations: store.conversations.length,
+        voiceConversations: store.conversations.filter((c) => c.channel === 'voice').length,
+        openEscalations: store.escalations.filter((e) => e.status === 'Open').length,
+        pendingReservations: store.reservations.filter((r) => r.status === 'Pending').length,
+        confirmedReservations: store.reservations.filter((r) => r.status === 'Confirmed').length,
+        aiCreatedReservations: store.reservations.filter((r) => r.source === 'AI Concierge').length,
+      },
       tableSummary: {
         total: store.tables.length,
         available: store.tables.filter((t) => t.status === 'Available').length,
@@ -599,8 +981,92 @@ async function startServer() {
     });
   });
 
+  // Owner-Only AI Configuration (Knowledge Base, Personality, Voice Toggle, Retention)
+  app.put('/api/admin/ai-config', requireOwner, (req, res) => {
+    const store = ensureStore();
+    const body = req.body || {};
+    const receptionistName =
+      typeof body.receptionistName === 'string' && body.receptionistName.trim()
+        ? body.receptionistName.trim().slice(0, 48)
+        : store.aiConfig.receptionistName;
+    const personalityPrompt =
+      typeof body.personalityPrompt === 'string' && body.personalityPrompt.trim()
+        ? body.personalityPrompt.trim().slice(0, 800)
+        : store.aiConfig.personalityPrompt;
+    const customKnowledgeBase =
+      typeof body.customKnowledgeBase === 'string'
+        ? body.customKnowledgeBase.trim().slice(0, 3000)
+        : store.aiConfig.customKnowledgeBase;
+    const voiceEnabled =
+      typeof body.voiceEnabled === 'boolean' ? body.voiceEnabled : store.aiConfig.voiceEnabled;
+    const retentionDays =
+      typeof body.retentionDays === 'number' && Number.isFinite(body.retentionDays)
+        ? Math.max(1, Math.min(90, Math.floor(body.retentionDays)))
+        : store.aiConfig.retentionDays;
+
+    store.aiConfig = {
+      receptionistName,
+      personalityPrompt,
+      customKnowledgeBase,
+      voiceEnabled,
+      retentionDays,
+      updatedAt: new Date().toISOString(),
+    };
+    writeStore(store);
+    res.json({ aiConfig: store.aiConfig });
+  });
+
+  // Owner-Only Staff Passcode Management (RBAC)
+  app.put('/api/admin/staff-passcode', requireOwner, (req, res) => {
+    const store = ensureStore();
+    const passcode = typeof req.body?.passcode === 'string' ? req.body.passcode.trim() : '';
+    if (!passcode) {
+      store.staffCredentialHash = null;
+      writeStore(store);
+      res.json({ ok: true, staffPasscodeConfigured: false });
+      return;
+    }
+    if (passcode.length < 6 || passcode.length > 128) {
+      res.status(400).json({ error: 'Staff passcode must be between 6 and 128 characters.' });
+      return;
+    }
+    store.staffCredentialHash = hashPasscode(passcode);
+    writeStore(store);
+    res.json({ ok: true, staffPasscodeConfigured: true });
+  });
+
+  // Staff/Owner Escalation Status Update
+  app.patch('/api/admin/escalations/:id', requireStaffOrOwner, (req, res) => {
+    const store = ensureStore();
+    const item = store.escalations.find((e) => e.id === req.params.id);
+    if (!item) {
+      res.status(404).json({ error: 'Escalation not found.' });
+      return;
+    }
+    if (req.body?.status === 'Open' || req.body?.status === 'Resolved') {
+      item.status = req.body.status;
+      writeStore(store);
+    }
+    res.json({ escalation: item });
+  });
+
+  // Owner-Only Privacy Controls: Delete Individual or All Stored Conversation Transcripts
+  app.delete('/api/admin/conversations/:id', requireOwner, (req, res) => {
+    const store = ensureStore();
+    store.conversations = store.conversations.filter((c) => c.id !== req.params.id);
+    writeStore(store);
+    res.json({ ok: true });
+  });
+
+  app.delete('/api/admin/conversations', requireOwner, (_req, res) => {
+    const store = ensureStore();
+    store.conversations = [];
+    writeStore(store);
+    res.json({ ok: true });
+  });
+
   // Admin Menu CRUD
-  app.post('/api/admin/menu', requireAdmin, (req, res) => {
+  app.post('/api/admin/menu', requireStaffOrOwner, (req, res) => {
     const body = req.body || {};
     const name = typeof body.name === 'string' ? body.name.trim().slice(0, 100) : '';
     const category = MENU_CATEGORIES.includes(body.category) ? body.category : 'Ghanaian Specialties';
@@ -640,7 +1106,7 @@ async function startServer() {
     res.status(201).json({ item: newItem });
   });
 
-  app.put('/api/admin/menu/:id', requireAdmin, (req, res) => {
+  app.put('/api/admin/menu/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     const idx = store.menu.findIndex((m) => m.id === req.params.id);
     if (idx === -1) {
@@ -686,7 +1152,7 @@ async function startServer() {
     res.json({ item: updated });
   });
 
-  app.delete('/api/admin/menu/:id', requireAdmin, (req, res) => {
+  app.delete('/api/admin/menu/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     store.menu = store.menu.filter((m) => m.id !== req.params.id);
     writeStore(store);
@@ -694,7 +1160,7 @@ async function startServer() {
   });
 
   // Admin Gallery CRUD
-  app.post('/api/admin/gallery', requireAdmin, (req, res) => {
+  app.post('/api/admin/gallery', requireStaffOrOwner, (req, res) => {
     const body = req.body || {};
     const title = typeof body.title === 'string' ? body.title.trim().slice(0, 100) : '';
     const image = typeof body.image === 'string' ? body.image.trim() : '';
@@ -716,7 +1182,7 @@ async function startServer() {
     res.status(201).json({ item });
   });
 
-  app.delete('/api/admin/gallery/:id', requireAdmin, (req, res) => {
+  app.delete('/api/admin/gallery/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     store.gallery = store.gallery.filter((g) => g.id !== req.params.id);
     writeStore(store);
@@ -724,7 +1190,7 @@ async function startServer() {
   });
 
   // Admin Events CRUD
-  app.post('/api/admin/events', requireAdmin, (req, res) => {
+  app.post('/api/admin/events', requireStaffOrOwner, (req, res) => {
     const body = req.body || {};
     const title = typeof body.title === 'string' ? body.title.trim().slice(0, 120) : '';
     const promoImage = typeof body.promoImage === 'string' ? body.promoImage.trim() : '';
@@ -748,7 +1214,7 @@ async function startServer() {
     res.status(201).json({ item });
   });
 
-  app.put('/api/admin/events/:id', requireAdmin, (req, res) => {
+  app.put('/api/admin/events/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     const idx = store.events.findIndex((e) => e.id === req.params.id);
     if (idx === -1) {
@@ -776,7 +1242,7 @@ async function startServer() {
     res.json({ item: store.events[idx] });
   });
 
-  app.delete('/api/admin/events/:id', requireAdmin, (req, res) => {
+  app.delete('/api/admin/events/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     store.events = store.events.filter((e) => e.id !== req.params.id);
     writeStore(store);
@@ -784,7 +1250,7 @@ async function startServer() {
   });
 
   // Admin Tables & Floor Management
-  app.post('/api/admin/tables', requireAdmin, (req, res) => {
+  app.post('/api/admin/tables', requireStaffOrOwner, (req, res) => {
     const body = req.body || {};
     const name = typeof body.name === 'string' ? body.name.trim().slice(0, 60) : '';
     const area = ['Indoor Dining', 'Outdoor Dining', 'Upstairs Terrace'].includes(body.area) ? body.area : 'Indoor Dining';
@@ -806,7 +1272,7 @@ async function startServer() {
     res.status(201).json({ table });
   });
 
-  app.patch('/api/admin/tables/:id', requireAdmin, (req, res) => {
+  app.patch('/api/admin/tables/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     const table = store.tables.find((t) => t.id === req.params.id);
     if (!table) {
@@ -822,7 +1288,7 @@ async function startServer() {
   });
 
   // Admin POS Walk-in / Dine-in Order Creation & Status Updates
-  app.post('/api/admin/orders', requireAdmin, (req, res) => {
+  app.post('/api/admin/orders', requireStaffOrOwner, (req, res) => {
     const body = req.body || {};
     const rawItems = Array.isArray(body.items)
       ? (body.items as Array<{ menuItemId?: string; qty?: number }>)
@@ -869,7 +1335,7 @@ async function startServer() {
     res.status(201).json({ order });
   });
 
-  app.patch('/api/admin/orders/:id', requireAdmin, (req, res) => {
+  app.patch('/api/admin/orders/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     const order = store.orders.find((o) => o.id === req.params.id);
     if (!order) {
@@ -888,15 +1354,15 @@ async function startServer() {
     res.json({ order });
   });
 
-  // Admin Reservations Status
-  app.patch('/api/admin/reservations/:id', requireAdmin, (req, res) => {
+  // Admin Reservations Status (Pending, Confirmed, Declined, Cancelled)
+  app.patch('/api/admin/reservations/:id', requireStaffOrOwner, (req, res) => {
     const store = ensureStore();
     const reservation = store.reservations.find((r) => r.id === req.params.id);
     if (!reservation) {
       res.status(404).json({ error: 'Reservation not found.' });
       return;
     }
-    const allowed: ReservationStatus[] = ['Pending Staff Response', 'Confirmed', 'Declined'];
+    const allowed: ReservationStatus[] = ['Pending', 'Confirmed', 'Declined', 'Cancelled'];
     if (allowed.includes(req.body?.status)) {
       reservation.status = req.body.status;
       writeStore(store);
@@ -904,8 +1370,8 @@ async function startServer() {
     res.json({ reservation });
   });
 
-  // Admin Settings Update
-  app.put('/api/admin/settings', requireAdmin, (req, res) => {
+  // Admin Settings Update (Owner only)
+  app.put('/api/admin/settings', requireOwner, (req, res) => {
     const store = ensureStore();
     const body = req.body || {};
     const nextSocials = Array.isArray(body.socials)
@@ -931,6 +1397,324 @@ async function startServer() {
     res.json({ settings: store.settings });
   });
 
+  // Admin FAQ CRUD
+  app.post('/api/admin/faqs', requireStaffOrOwner, (req, res) => {
+    const body = req.body || {};
+    const question = typeof body.question === 'string' ? body.question.trim().slice(0, 180) : '';
+    const answer = typeof body.answer === 'string' ? body.answer.trim().slice(0, 600) : '';
+    const allowedCats: FaqCategory[] = [
+      'Reservations',
+      'Menu & Dietary',
+      'Location & Parking',
+      'Lounge & Live Band',
+    ];
+    const category: FaqCategory = allowedCats.includes(body.category)
+      ? body.category
+      : 'Location & Parking';
+    if (!question || !answer) {
+      res.status(400).json({ error: 'Question and answer are required.' });
+      return;
+    }
+    const store = ensureStore();
+    const faq: FaqItem = {
+      id: `faq-${crypto.randomBytes(4).toString('hex')}`,
+      question,
+      answer,
+      category,
+      isPlaceholder: Boolean(body.isPlaceholder),
+    };
+    store.faqs.push(faq);
+    writeStore(store);
+    res.status(201).json({ faq });
+  });
+
+  app.put('/api/admin/faqs/:id', requireStaffOrOwner, (req, res) => {
+    const store = ensureStore();
+    const idx = store.faqs.findIndex((f) => f.id === req.params.id);
+    if (idx === -1) {
+      res.status(404).json({ error: 'FAQ item not found.' });
+      return;
+    }
+    const body = req.body || {};
+    const cur = store.faqs[idx];
+    store.faqs[idx] = {
+      ...cur,
+      question: typeof body.question === 'string' && body.question.trim() ? body.question.trim().slice(0, 180) : cur.question,
+      answer: typeof body.answer === 'string' && body.answer.trim() ? body.answer.trim().slice(0, 600) : cur.answer,
+      isPlaceholder: typeof body.isPlaceholder === 'boolean' ? body.isPlaceholder : false,
+    };
+    writeStore(store);
+    res.json({ faq: store.faqs[idx] });
+  });
+
+  app.delete('/api/admin/faqs/:id', requireStaffOrOwner, (req, res) => {
+    const store = ensureStore();
+    store.faqs = store.faqs.filter((f) => f.id !== req.params.id);
+    writeStore(store);
+    res.json({ ok: true });
+  });
+
+  // Real-Time Gemini Live Voice WebSocket Bridge (/ws/ai-live)
+  const wss = new WebSocketServer({ server, path: '/ws/ai-live' });
+  wss.on('connection', async (clientWs, req) => {
+    const ip = req.socket.remoteAddress || 'unknown';
+    const store = ensureStore();
+
+    if (!store.aiConfig.voiceEnabled) {
+      clientWs.send(
+        JSON.stringify({
+          code: 'VOICE_DISABLED',
+          error: 'Voice concierge is currently disabled by Chop n Chill management. Please use text chat.',
+        })
+      );
+      clientWs.close();
+      return;
+    }
+
+    if (!checkRateLimit(ip, 'ai-voice', 20, 15 * 60 * 1000)) {
+      clientWs.send(
+        JSON.stringify({
+          code: 'RATE_LIMITED',
+          error: 'Voice session rate limit reached. Please use text chat or call +233 55 490 3755.',
+        })
+      );
+      clientWs.close();
+      return;
+    }
+
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+    if (!apiKey) {
+      clientWs.send(
+        JSON.stringify({
+          code: 'MISSING_API_KEY',
+          error:
+            'Real-time voice requires GEMINI_API_KEY configured on the server. Please call +233 55 490 3755 or message on WhatsApp.',
+        })
+      );
+      clientWs.close();
+      return;
+    }
+
+    const sessionId = `voice-${crypto.randomBytes(5).toString('hex')}`;
+    const liveModel = 'gemini-3.8-live';
+    const ai = createGeminiClient(apiKey, 0);
+    let closed = false;
+    let userTranscriptBuffer = '';
+    let modelTranscriptBuffer = '';
+    let liveSessionRef: Awaited<ReturnType<typeof ai.live.connect>> | null = null;
+
+    const formatLiveError = (rawMessage: string): { code: string; message: string } => {
+      if (/401|403|API_KEY_INVALID|PERMISSION_DENIED/i.test(rawMessage)) {
+        return {
+          code: 'AUTH_ERROR',
+          message: 'Server Gemini API key rejected for Live Voice. Verify GEMINI_API_KEY in Settings > Secrets.',
+        };
+      }
+      if (/404|NOT_FOUND|not found|unsupported model/i.test(rawMessage)) {
+        return {
+          code: 'INVALID_MODEL',
+          message: `Live model (${liveModel}) was rejected by the upstream endpoint.`,
+        };
+      }
+      if (/429|RESOURCE_EXHAUSTED|quota/i.test(rawMessage)) {
+        return {
+          code: 'QUOTA_EXCEEDED',
+          message: 'Live voice API quota reached temporarily. Please use text chat or try again shortly.',
+        };
+      }
+      return {
+        code: 'LIVE_SESSION_ERROR',
+        message: rawMessage || 'Unable to establish live voice session.',
+      };
+    };
+
+    try {
+      const liveSession = await ai.live.connect({
+        model: liveModel,
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+          },
+          realtimeInputConfig: {
+            automaticActivityDetection: {
+              disabled: false,
+              prefixPaddingMs: 120,
+              silenceDurationMs: 650,
+            },
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+          tools: [{ functionDeclarations: CONCIERGE_TOOL_DECLARATIONS }],
+          systemInstruction: buildConciergeSystemInstruction(store),
+        },
+        callbacks: {
+          onmessage: async (message: LiveServerMessage) => {
+            if (closed || clientWs.readyState !== 1) return;
+            const sc = message.serverContent;
+
+            if (sc?.inputTranscription?.text) {
+              userTranscriptBuffer += sc.inputTranscription.text;
+              clientWs.send(JSON.stringify({ inputTranscript: sc.inputTranscription.text }));
+            }
+
+            if (sc?.outputTranscription?.text) {
+              modelTranscriptBuffer += sc.outputTranscription.text;
+              clientWs.send(JSON.stringify({ outputTranscript: sc.outputTranscription.text }));
+            }
+
+            for (const part of sc?.modelTurn?.parts ?? []) {
+              if (part.inlineData?.data) {
+                clientWs.send(JSON.stringify({ audio: part.inlineData.data }));
+              }
+            }
+
+            if (sc?.interrupted) {
+              clientWs.send(JSON.stringify({ interrupted: true }));
+            }
+
+            if (sc?.turnComplete) {
+              const curStore = ensureStore();
+              if (userTranscriptBuffer.trim()) {
+                recordConversationTurn(curStore, sessionId, 'voice', 'user', userTranscriptBuffer);
+                userTranscriptBuffer = '';
+              }
+              if (modelTranscriptBuffer.trim()) {
+                recordConversationTurn(curStore, sessionId, 'voice', 'assistant', modelTranscriptBuffer);
+                modelTranscriptBuffer = '';
+              }
+              writeStore(curStore);
+              clientWs.send(JSON.stringify({ turnComplete: true }));
+            }
+
+            if (message.toolCall?.functionCalls?.length) {
+              const curStore = ensureStore();
+              const responses = [];
+              for (const call of message.toolCall.functionCalls) {
+                const toolName = call.name || '';
+                clientWs.send(JSON.stringify({ toolActive: toolName }));
+                const result = await executeConciergeTool(
+                  toolName,
+                  (call.args || {}) as Record<string, unknown>,
+                  curStore,
+                  { sessionId },
+                  () => writeStore(curStore)
+                );
+                responses.push({
+                  id: call.id,
+                  name: toolName,
+                  response: result,
+                });
+              }
+              liveSession.sendToolResponse({ functionResponses: responses });
+            }
+          },
+          onerror: (err) => {
+            if (!closed && clientWs.readyState === 1) {
+              const formatted = formatLiveError(err?.message || 'Live voice connection interrupted.');
+              clientWs.send(JSON.stringify({ code: formatted.code, error: formatted.message }));
+            }
+          },
+          onclose: () => {
+            if (!closed && clientWs.readyState === 1) {
+              clientWs.send(JSON.stringify({ closed: true }));
+              clientWs.close();
+            }
+          },
+        },
+      });
+
+      liveSessionRef = liveSession;
+
+      if (clientWs.readyState === 1) {
+        clientWs.send(
+          JSON.stringify({
+            ready: true,
+            sessionId,
+            model: liveModel,
+            vadMode: 'automatic',
+          })
+        );
+      }
+
+      clientWs.on('message', (raw) => {
+        if (closed || !liveSessionRef) return;
+        try {
+          const msg = JSON.parse(raw.toString()) as {
+            audio?: string;
+            mimeType?: string;
+            audioStreamEnd?: boolean;
+            activityStart?: boolean;
+            activityEnd?: boolean;
+            text?: string;
+          };
+          if (typeof msg.audio === 'string' && msg.audio.length > 0) {
+            liveSessionRef.sendRealtimeInput({
+              audio: {
+                data: msg.audio,
+                mimeType: msg.mimeType || 'audio/pcm;rate=16000',
+              },
+            });
+          } else if (msg.audioStreamEnd === true) {
+            liveSessionRef.sendRealtimeInput({ audioStreamEnd: true });
+          } else if (msg.activityStart === true) {
+            liveSessionRef.sendRealtimeInput({ activityStart: {} });
+          } else if (msg.activityEnd === true) {
+            liveSessionRef.sendRealtimeInput({ activityEnd: {} });
+          } else if (typeof msg.text === 'string' && msg.text.trim()) {
+            liveSessionRef.sendRealtimeInput({ text: msg.text.trim().slice(0, 600) });
+          }
+        } catch {
+          // Ignore malformed frame
+        }
+      });
+
+      clientWs.on('close', () => {
+        closed = true;
+        try {
+          const curStore = ensureStore();
+          if (userTranscriptBuffer.trim()) {
+            recordConversationTurn(curStore, sessionId, 'voice', 'user', userTranscriptBuffer);
+          }
+          if (modelTranscriptBuffer.trim()) {
+            recordConversationTurn(curStore, sessionId, 'voice', 'assistant', modelTranscriptBuffer);
+          }
+          writeStore(curStore);
+        } catch {
+          // ignore
+        }
+        try {
+          liveSession.close();
+        } catch {
+          // ignore
+        }
+      });
+    } catch (err) {
+      const rawMsg = err instanceof Error ? err.message : 'Unable to establish live voice session.';
+      const formatted = formatLiveError(rawMsg);
+      console.error('[AI Live WS Error]', {
+        code: formatted.code,
+        message: rawMsg,
+        hasGeminiBaseUrl: Boolean(process.env.GOOGLE_GEMINI_BASE_URL),
+        geminiBaseUrlHost: process.env.GOOGLE_GEMINI_BASE_URL
+          ? (() => {
+              try {
+                return new URL(process.env.GOOGLE_GEMINI_BASE_URL).origin;
+              } catch {
+                return 'invalid-url';
+              }
+            })()
+          : 'default',
+        apiVersion: process.env.GOOGLE_GENAI_API_VERSION || 'default',
+        useVertexAi: process.env.GOOGLE_GENAI_USE_VERTEXAI || 'false',
+      });
+      if (clientWs.readyState === 1) {
+        clientWs.send(JSON.stringify({ code: formatted.code, error: formatted.message }));
+        clientWs.close();
+      }
+    }
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
@@ -947,7 +1731,7 @@ async function startServer() {
   }
 
   const port = Number(process.env.PORT) || 3000;
-  app.listen(port, '0.0.0.0', () => {
+  server.listen(port, '0.0.0.0', () => {
     console.log(`Chop 'n Chill server listening on http://0.0.0.0:${port}`);
   });
 }

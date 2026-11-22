@@ -35,6 +35,7 @@ export function Footer({ settings, onOpenAdmin }: FooterProps) {
               <li><a href="#entertainment" className="hover:text-[#F8F4EC]">Live Entertainment</a></li>
               <li><a href="#gallery" className="hover:text-[#F8F4EC]">Photo Gallery</a></li>
               <li><a href="#reservations" className="hover:text-[#F8F4EC]">Reservations</a></li>
+              <li><a href="#faq" className="hover:text-[#F8F4EC]">FAQ</a></li>
             </ul>
           </div>
 

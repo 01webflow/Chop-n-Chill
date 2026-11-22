@@ -1,4 +1,5 @@
 import {
+  Bot,
   CalendarCheck,
   ChefHat,
   ClipboardList,
@@ -7,9 +8,11 @@ import {
   LayoutGrid,
   List,
   LogOut,
+  MessageSquareText,
   Plus,
   Search,
   Settings,
+  Shield,
   Trash2,
   Utensils,
   X,
@@ -18,6 +21,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   AdminStorePayload,
   AuthStatus,
+  FaqCategory,
   GalleryCategory,
   MENU_CATEGORIES,
   MenuCategory,
@@ -43,6 +47,8 @@ type AdminTab =
   | 'menu'
   | 'events'
   | 'reservations'
+  | 'inbox'
+  | 'ai'
   | 'settings';
 
 const ORDER_STATUSES: OrderStatus[] = [
@@ -116,6 +122,14 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
   const [newGalCat, setNewGalCat] = useState<GalleryCategory>('Exterior');
   const [newGalImage, setNewGalImage] = useState('');
   const [newGalVerified, setNewGalVerified] = useState(true);
+
+  // New FAQ form
+  const [newFaqQuestion, setNewFaqQuestion] = useState('');
+  const [newFaqAnswer, setNewFaqAnswer] = useState('');
+  const [newFaqCategory, setNewFaqCategory] = useState<FaqCategory>('Location & Parking');
+
+  // Staff Passcode (RBAC)
+  const [staffPasscodeInput, setStaffPasscodeInput] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -339,7 +353,9 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
     { id: 'tables', label: 'Tables & Floor', icon: Utensils },
     { id: 'menu', label: 'Menu & Prices', icon: Utensils },
     { id: 'events', label: 'Events & Gallery', icon: ImageIcon },
-    { id: 'reservations', label: 'Reservations', icon: CalendarCheck, badge: store?.reservations.filter((r) => r.status === 'Pending Staff Response').length },
+    { id: 'reservations', label: 'Reservations', icon: CalendarCheck, badge: store?.reservations.filter((r) => r.status === 'Pending').length },
+    { id: 'inbox', label: 'Chats & Escalations', icon: MessageSquareText, badge: store?.analytics?.openEscalations },
+    { id: 'ai', label: 'AI Concierge & KB', icon: Bot },
     { id: 'settings', label: 'Hours & Contact', icon: Settings },
   ];
 
@@ -433,7 +449,9 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
         {/* Top Breadcrumb Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-slate-200">
           <div>
-            <p className="text-xs text-slate-500">Chop 'n Chill Kasoa / Operations</p>
+            <p className="text-xs text-slate-500">
+              Chop &apos;n Chill Kasoa / Operations {store ? `· ${store.role === 'owner' ? 'Owner Access' : 'Staff Access'}` : ''}
+            </p>
             <h1 className="font-sans text-xl sm:text-2xl font-bold text-slate-900">
               {navItems.find((n) => n.id === activeTab)?.label}
             </h1>
@@ -478,13 +496,19 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
                   <div className="p-5 bg-white border border-slate-200 rounded-lg">
                     <p className="text-xs text-slate-500 mb-1">Pending Reservations</p>
                     <p className="font-mono text-2xl font-bold text-amber-700 tabular-nums">
-                      {store.reservations.filter((r) => r.status === 'Pending Staff Response').length}
+                      {store.reservations.filter((r) => r.status === 'Pending').length}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {store.analytics.aiCreatedReservations} via AI Concierge
                     </p>
                   </div>
                   <div className="p-5 bg-white border border-slate-200 rounded-lg">
-                    <p className="text-xs text-slate-500 mb-1">Completed Sales (Priced)</p>
+                    <p className="text-xs text-slate-500 mb-1">AI Concierge Activity</p>
                     <p className="font-mono text-2xl font-bold text-slate-900 tabular-nums">
-                      GH₵ {completedSalesTotal.toFixed(2)}
+                      {store.analytics.totalConversations}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {store.analytics.voiceConversations} voice · {store.analytics.openEscalations} open handoffs · GH₵ {completedSalesTotal.toFixed(2)} sales
                     </p>
                   </div>
                 </div>
@@ -1444,7 +1468,9 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
                   store.reservations.map((r) => (
                     <div key={r.id} className="p-5 flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <p className="font-mono text-xs text-slate-500">{r.id}</p>
+                        <p className="font-mono text-xs text-slate-500">
+                          {r.id} · {r.source || 'Web Form'}
+                        </p>
                         <p className="font-semibold text-slate-900">
                           {r.name} · {r.phone}
                         </p>
@@ -1476,9 +1502,10 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
                           }
                           className="px-2.5 py-1.5 rounded border border-slate-300 text-xs bg-white"
                         >
-                          <option value="Pending Staff Response">Pending Staff Response</option>
+                          <option value="Pending">Pending (Needs Staff Confirmation)</option>
                           <option value="Confirmed">Confirmed</option>
                           <option value="Declined">Declined</option>
+                          <option value="Cancelled">Cancelled</option>
                         </select>
                       </div>
                     </div>
@@ -1487,8 +1514,308 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
               </div>
             )}
 
+            {/* CHATS & HUMAN ESCALATIONS INBOX */}
+            {activeTab === 'inbox' && (
+              <div className="space-y-8">
+                <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                    <div>
+                      <h2 className="font-sans text-base font-bold text-slate-900">
+                        Human Assistance Escalations
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Requests logged when visitors ask for a staff member or unconfirmed event/deposit details.
+                      </p>
+                    </div>
+                    <span className="font-mono text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded">
+                      {store.escalations.filter((e) => e.status === 'Open').length} Open
+                    </span>
+                  </div>
+
+                  {store.escalations.length === 0 ? (
+                    <p className="text-sm text-slate-500 py-6 text-center">
+                      No human staff escalations logged yet.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {store.escalations.map((esc) => (
+                        <div key={esc.id} className="py-4 flex flex-wrap items-start justify-between gap-4">
+                          <div className="max-w-2xl">
+                            <p className="font-mono text-xs text-slate-500">
+                              {esc.id} · {new Date(esc.createdAt).toLocaleString()}
+                            </p>
+                            <p className="font-semibold text-sm text-slate-900 mt-0.5">
+                              {esc.guestName} ({esc.guestContact})
+                            </p>
+                            <p className="text-xs font-medium text-emerald-800 mt-0.5">{esc.reason}</p>
+                            <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{esc.summary}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              authFetch(`/api/admin/escalations/${esc.id}`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({
+                                  status: esc.status === 'Open' ? 'Resolved' : 'Open',
+                                }),
+                              })
+                            }
+                            className={`px-3 py-1.5 rounded text-xs font-semibold border ${
+                              esc.status === 'Open'
+                                ? 'border-emerald-700 text-emerald-800 hover:bg-emerald-50'
+                                : 'border-slate-300 text-slate-600 bg-slate-50'
+                            }`}
+                          >
+                            {esc.status === 'Open' ? 'Mark Resolved' : 'Resolved (Reopen)'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <h2 className="font-sans text-base font-bold text-slate-900">
+                        AI Concierge Conversation History
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Payment card numbers are automatically blocked/redacted. Logs expire automatically after {store.aiConfig.retentionDays} day(s).
+                      </p>
+                    </div>
+                    {store.role === 'owner' && store.conversations.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await authFetch('/api/admin/conversations', { method: 'DELETE' });
+                          showToast('All conversation logs purged');
+                        }}
+                        className="px-3 py-1.5 rounded border border-red-300 text-xs font-semibold text-red-700 hover:bg-red-50"
+                      >
+                        Purge All Logs
+                      </button>
+                    )}
+                  </div>
+
+                  {store.conversations.length === 0 ? (
+                    <p className="text-sm text-slate-500 py-6 text-center">
+                      No AI Concierge conversations recorded yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {store.conversations.map((conv) => (
+                        <div key={conv.id} className="p-4 border border-slate-200 rounded-md space-y-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-semibold text-slate-900">{conv.id}</span>
+                              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 uppercase text-[11px]">
+                                {conv.channel}
+                              </span>
+                              {conv.escalatedToHuman && (
+                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[11px] font-semibold">
+                                  Escalated
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-slate-500">
+                              <span>{new Date(conv.lastMessageAt).toLocaleString()}</span>
+                              {store.role === 'owner' && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    authFetch(`/api/admin/conversations/${conv.id}`, {
+                                      method: 'DELETE',
+                                    })
+                                  }
+                                  className="text-red-700 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-1.5 max-h-44 overflow-y-auto pt-2 border-t border-slate-100 text-xs">
+                            {conv.turns.map((t, idx) => (
+                              <div key={idx} className="leading-relaxed">
+                                <span className="font-semibold text-slate-900 mr-1.5">
+                                  {t.role === 'user' ? 'Guest:' : 'Concierge:'}
+                                </span>
+                                <span className="text-slate-700">{t.text}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* AI CONCIERGE & KNOWLEDGE BASE CONFIGURATION */}
+            {activeTab === 'ai' && (
+              <div className="space-y-6 max-w-3xl">
+                {store.role !== 'owner' && (
+                  <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+                    <Shield className="w-4 h-4 shrink-0" />
+                    <span>
+                      Signed in with Staff Access. Only the Owner passcode can modify AI personality, voice availability, knowledge base, or staff passcodes.
+                    </span>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    const resp = await authFetch('/api/admin/ai-config', {
+                      method: 'PUT',
+                      body: JSON.stringify({
+                        receptionistName: fd.get('receptionistName'),
+                        personalityPrompt: fd.get('personalityPrompt'),
+                        customKnowledgeBase: fd.get('customKnowledgeBase'),
+                        voiceEnabled: fd.get('voiceEnabled') === 'on',
+                        retentionDays: Number(fd.get('retentionDays')),
+                      }),
+                    });
+                    if (resp?.ok) showToast('AI Concierge settings saved');
+                  }}
+                  className="bg-white border border-slate-200 rounded-lg p-6 space-y-4"
+                >
+                  <h2 className="font-sans text-base font-bold text-slate-900">
+                    AI Concierge Personality, Voice &amp; Knowledge Base
+                  </h2>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Receptionist Name
+                      </label>
+                      <input
+                        name="receptionistName"
+                        disabled={store.role !== 'owner'}
+                        defaultValue={store.aiConfig.receptionistName}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm disabled:bg-slate-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Transcript Retention (Days)
+                      </label>
+                      <input
+                        name="retentionDays"
+                        type="number"
+                        min={1}
+                        max={90}
+                        disabled={store.role !== 'owner'}
+                        defaultValue={store.aiConfig.retentionDays}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm tabular-nums disabled:bg-slate-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Personality &amp; Communication Style
+                    </label>
+                    <textarea
+                      name="personalityPrompt"
+                      rows={3}
+                      disabled={store.role !== 'owner'}
+                      defaultValue={store.aiConfig.personalityPrompt}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm disabled:bg-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Restaurant Knowledge Base Notes (Parking, Policies, Specials, Lounge Tips)
+                    </label>
+                    <textarea
+                      name="customKnowledgeBase"
+                      rows={5}
+                      disabled={store.role !== 'owner'}
+                      defaultValue={store.aiConfig.customKnowledgeBase}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm disabled:bg-slate-50"
+                    />
+                  </div>
+
+                  <label className="inline-flex items-center gap-2.5 text-sm text-slate-800 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      name="voiceEnabled"
+                      disabled={store.role !== 'owner'}
+                      defaultChecked={store.aiConfig.voiceEnabled}
+                    />
+                    <span>Enable Real-Time Voice Concierge (Microphone Live Audio)</span>
+                  </label>
+
+                  {store.role === 'owner' && (
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 rounded-md bg-[#173C30] text-white text-xs font-semibold uppercase tracking-wider"
+                      >
+                        Save AI Configuration
+                      </button>
+                    </div>
+                  )}
+                </form>
+
+                {store.role === 'owner' && (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const resp = await authFetch('/api/admin/staff-passcode', {
+                        method: 'PUT',
+                        body: JSON.stringify({ passcode: staffPasscodeInput }),
+                      });
+                      if (resp?.ok) {
+                        setStaffPasscodeInput('');
+                        showToast(
+                          staffPasscodeInput.trim()
+                            ? 'Staff access passcode updated'
+                            : 'Staff passcode cleared'
+                        );
+                      }
+                    }}
+                    className="bg-white border border-slate-200 rounded-lg p-6 space-y-3"
+                  >
+                    <h2 className="font-sans text-base font-bold text-slate-900">
+                      Role-Based Staff Passcode (RBAC)
+                    </h2>
+                    <p className="text-xs text-slate-600">
+                      Status:{' '}
+                      <strong>
+                        {store.staffPasscodeConfigured
+                          ? 'Active — hosts/cashiers can sign in with Staff Passcode without Owner security access.'
+                          : 'Not configured — set a 6+ character passcode for hosts and kitchen staff.'}
+                      </strong>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="password"
+                        value={staffPasscodeInput}
+                        onChange={(e) => setStaffPasscodeInput(e.target.value)}
+                        placeholder="New staff passcode (6+ chars, or blank to disable)"
+                        className="flex-1 min-w-[220px] px-3 py-2 border border-slate-300 rounded-md text-xs"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-md bg-slate-900 text-white text-xs font-semibold"
+                      >
+                        Update Staff Access
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
             {/* SETTINGS */}
             {activeTab === 'settings' && (
+              <>
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -1567,6 +1894,114 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
                   Save Settings
                 </button>
               </form>
+
+              <div className="bg-white border border-slate-200 rounded-lg p-6 max-w-2xl mt-6 space-y-4">
+                <h2 className="font-sans text-base font-bold text-slate-900">
+                  Manage Frequently Asked Questions
+                </h2>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newFaqQuestion.trim() || !newFaqAnswer.trim()) return;
+                    const resp = await authFetch('/api/admin/faqs', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        question: newFaqQuestion,
+                        answer: newFaqAnswer,
+                        category: newFaqCategory,
+                        isPlaceholder: false,
+                      }),
+                    });
+                    if (resp?.ok) {
+                      setNewFaqQuestion('');
+                      setNewFaqAnswer('');
+                      showToast('FAQ item added');
+                    }
+                  }}
+                  className="space-y-3 pb-4 border-b border-slate-100"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      value={newFaqQuestion}
+                      onChange={(e) => setNewFaqQuestion(e.target.value)}
+                      placeholder="Question *"
+                      required
+                      className="sm:col-span-2 px-3 py-2 border border-slate-300 rounded-md text-xs"
+                    />
+                    <select
+                      value={newFaqCategory}
+                      onChange={(e) => setNewFaqCategory(e.target.value as FaqCategory)}
+                      className="px-3 py-2 border border-slate-300 rounded-md text-xs bg-white"
+                    >
+                      <option value="Reservations">Reservations</option>
+                      <option value="Menu & Dietary">Menu &amp; Dietary</option>
+                      <option value="Location & Parking">Location &amp; Parking</option>
+                      <option value="Lounge & Live Band">Lounge &amp; Live Band</option>
+                    </select>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={newFaqAnswer}
+                    onChange={(e) => setNewFaqAnswer(e.target.value)}
+                    placeholder="Verified answer *"
+                    required
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-xs"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-md bg-[#173C30] text-white text-xs font-semibold"
+                  >
+                    + Add FAQ
+                  </button>
+                </form>
+
+                <div className="space-y-4">
+                  {store.faqs.map((faq) => (
+                    <div key={faq.id} className="p-3.5 border border-slate-200 rounded-md space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-semibold text-emerald-800">{faq.category}</span>
+                        <button
+                          type="button"
+                          onClick={() => authFetch(`/api/admin/faqs/${faq.id}`, { method: 'DELETE' })}
+                          className="text-xs text-red-700 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        defaultValue={faq.question}
+                        onBlur={(e) => {
+                          if (e.target.value !== faq.question) {
+                            authFetch(`/api/admin/faqs/${faq.id}`, {
+                              method: 'PUT',
+                              body: JSON.stringify({ question: e.target.value, isPlaceholder: false }),
+                            });
+                            showToast('FAQ updated');
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs font-semibold"
+                      />
+                      <textarea
+                        rows={2}
+                        defaultValue={faq.answer}
+                        onBlur={(e) => {
+                          if (e.target.value !== faq.answer) {
+                            authFetch(`/api/admin/faqs/${faq.id}`, {
+                              method: 'PUT',
+                              body: JSON.stringify({ answer: e.target.value, isPlaceholder: false }),
+                            });
+                            showToast('FAQ answer saved');
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-700"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              </>
             )}
           </>
         )}

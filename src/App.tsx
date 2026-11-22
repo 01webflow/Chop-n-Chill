@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AboutSection } from './components/AboutSection';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AiConcierge } from './components/AiConcierge';
 import { ContactSection } from './components/ContactSection';
 import { EntertainmentSection } from './components/EntertainmentSection';
+import { FaqSection } from './components/FaqSection';
 import { FloatingConcierge } from './components/FloatingConcierge';
 import { Footer } from './components/Footer';
 import { GallerySection } from './components/GallerySection';
@@ -31,9 +33,39 @@ const INITIAL_FALLBACK_DATA: PublicStorePayload = {
       'Dine-in, takeaway, and delivery available. Delivery coverage confirmed by staff upon enquiry.',
     socials: [],
   },
+  aiPublicConfig: {
+    receptionistName: 'AI Concierge',
+    voiceEnabled: true,
+  },
   menu: [],
   events: [],
   gallery: [],
+  faqs: [
+    {
+      id: 'faq-parking',
+      category: 'Location & Parking',
+      question: "Is parking available at Chop 'n Chill in Kasoa?",
+      answer:
+        'Please call +233 55 490 3755 or message us on WhatsApp prior to your visit to confirm current parking access near HH3J+G5M, Kasoa—especially during weekend live-band evenings.',
+      isPlaceholder: true,
+    },
+    {
+      id: 'faq-deposits',
+      category: 'Reservations',
+      question: 'Do you require a deposit for table reservations or group bookings?',
+      answer:
+        'Online reservation requests do not charge any payment upfront and are only confirmed once Chop \'n Chill staff respond. Any group deposit policy is confirmed directly by our team.',
+      isPlaceholder: true,
+    },
+    {
+      id: 'faq-dietary',
+      category: 'Menu & Dietary',
+      question: 'Can you accommodate dietary preferences or food allergies?',
+      answer:
+        'Please note allergies or spice preferences in Special Requests and confirm specific dish ingredients directly with our kitchen team at +233 55 490 3755 before ordering.',
+      isPlaceholder: true,
+    },
+  ],
   tableSummary: {
     total: 5,
     available: 5,
@@ -46,6 +78,7 @@ export default function App() {
   const [tray, setTray] = useState<TrayItem[]>([]);
   const [trayOpen, setTrayOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [conciergeOpenSignal, setConciergeOpenSignal] = useState(0);
 
   const loadPublicStore = useCallback(async () => {
     try {
@@ -85,10 +118,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#101010] text-[#F8F4EC] flex flex-col">
-      <Navbar onOpenReserve={() => {}} />
+      <Navbar
+        onOpenReserve={() => {}}
+        onOpenConcierge={() => setConciergeOpenSignal((n) => n + 1)}
+      />
 
       <main className="flex-1">
-        <HeroSection settings={data.settings} heroImage={HERO_IMAGE} />
+        <HeroSection
+          settings={data.settings}
+          heroImage={HERO_IMAGE}
+          onOpenConcierge={() => setConciergeOpenSignal((n) => n + 1)}
+        />
 
         <AboutSection aboutImage={ABOUT_IMAGE} />
 
@@ -108,10 +148,18 @@ export default function App() {
 
         <ReservationsSection settings={data.settings} />
 
+        <FaqSection faqs={data.faqs} settings={data.settings} />
+
         <ContactSection settings={data.settings} />
       </main>
 
       <Footer settings={data.settings} onOpenAdmin={() => setAdminOpen(true)} />
+
+      <AiConcierge
+        settings={data.settings}
+        aiPublicConfig={data.aiPublicConfig}
+        externalOpenSignal={conciergeOpenSignal}
+      />
 
       <FloatingConcierge settings={data.settings} />
 
