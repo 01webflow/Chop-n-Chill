@@ -16,14 +16,16 @@ export function detectHardwareWebGL(): boolean {
       (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
     if (!gl) return false;
 
+    let supported = true;
     const dbg = gl.getExtension('WEBGL_debug_renderer_info');
     if (dbg) {
       const rendererName = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '');
       if (/swiftshader|llvmpipe|softpipe|software/i.test(rendererName)) {
-        return false;
+        supported = false;
       }
     }
-    return true;
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return supported;
   } catch {
     return false;
   }

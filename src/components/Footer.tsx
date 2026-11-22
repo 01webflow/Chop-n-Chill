@@ -1,4 +1,5 @@
 import { Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { RestaurantSettings } from '../types';
 
 interface FooterProps {
@@ -29,13 +30,13 @@ export function Footer({ settings, onOpenAdmin }: FooterProps) {
               Navigation
             </p>
             <ul className="space-y-2">
-              <li><a href="#home" className="hover:text-[#F8F4EC]">Home</a></li>
-              <li><a href="#about" className="hover:text-[#F8F4EC]">About Us</a></li>
-              <li><a href="#menu" className="hover:text-[#F8F4EC]">Our Menu</a></li>
-              <li><a href="#entertainment" className="hover:text-[#F8F4EC]">Live Entertainment</a></li>
-              <li><a href="#gallery" className="hover:text-[#F8F4EC]">Photo Gallery</a></li>
-              <li><a href="#reservations" className="hover:text-[#F8F4EC]">Reservations</a></li>
-              <li><a href="#faq" className="hover:text-[#F8F4EC]">FAQ</a></li>
+              <li><Link to="/" className="hover:text-[#F8F4EC]">Home</Link></li>
+              <li><Link to="/about" className="hover:text-[#F8F4EC]">About Us</Link></li>
+              <li><Link to="/menu" className="hover:text-[#F8F4EC]">Our Menu</Link></li>
+              <li><Link to="/live-band" className="hover:text-[#F8F4EC]">Live Entertainment</Link></li>
+              <li><Link to="/gallery" className="hover:text-[#F8F4EC]">Photo Gallery</Link></li>
+              <li><Link to="/reservations" className="hover:text-[#F8F4EC]">Reservations</Link></li>
+              <li><Link to="/faq" className="hover:text-[#F8F4EC]">FAQ</Link></li>
             </ul>
           </div>
 

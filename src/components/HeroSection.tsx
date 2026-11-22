@@ -1,6 +1,7 @@
 import { MapPin, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { resolvePublicAssetUrl } from '../lib/assets';
 import { RestaurantSettings } from '../types';
 
@@ -128,18 +129,18 @@ export function HeroSection({ settings, heroImage, onOpenConcierge }: HeroSectio
           </p>
 
           <div className="flex flex-wrap items-center gap-3.5">
-            <a
-              href="#menu"
+            <Link
+              to="/menu"
               className="inline-flex items-center justify-center px-7 py-3.5 rounded-sm bg-[#C9A45C] text-[#101010] text-xs font-semibold uppercase tracking-[0.15em] hover:bg-[#DFC082] hover:-translate-y-0.5 transition-all whitespace-nowrap shrink-0 min-h-[48px]"
             >
               Explore Our Menu
-            </a>
-            <a
-              href="#reservations"
+            </Link>
+            <Link
+              to="/reservations"
               className="inline-flex items-center justify-center px-7 py-3.5 rounded-sm border border-[#F8F4EC]/40 bg-[#101010]/70 text-[#F8F4EC] text-xs font-semibold uppercase tracking-[0.15em] hover:border-[#C9A45C] hover:text-[#DFC082] hover:-translate-y-0.5 transition-all whitespace-nowrap shrink-0 min-h-[48px]"
             >
               Reserve Your Table
-            </a>
+            </Link>
             <button
               type="button"
               onClick={onOpenConcierge}

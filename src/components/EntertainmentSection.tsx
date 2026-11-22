@@ -1,5 +1,6 @@
 import { Calendar, Clock, Music2 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { resolvePublicAssetUrl } from '../lib/assets';
 import { EventItem } from '../types';
 
@@ -43,12 +44,15 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
               <p>Group Hangouts · Celebrations · Evening Drinks &amp; Grills</p>
             </div>
             <div>
-              <a
-                href="#upcoming-events"
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById('upcoming-events')?.scrollIntoView({ behavior: 'smooth' })
+                }
                 className="inline-flex items-center justify-center px-7 py-3.5 rounded-sm bg-[#C9A45C] text-[#101010] text-xs font-semibold uppercase tracking-[0.15em] hover:bg-[#DFC082] hover:-translate-y-0.5 transition-all whitespace-nowrap shrink-0 min-h-[46px]"
               >
                 Explore Upcoming Events
-              </a>
+              </button>
             </div>
           </div>
 
@@ -142,12 +146,12 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
                   </div>
 
                   <div>
-                    <a
-                      href="#reservations"
+                    <Link
+                      to="/reservations"
                       className="inline-flex items-center justify-center px-4 py-2 rounded-sm border border-[#C9A45C]/45 text-xs font-semibold uppercase tracking-[0.12em] text-[#F8F4EC] hover:bg-[#C9A45C] hover:text-[#101010] transition-colors whitespace-nowrap shrink-0 min-h-[38px]"
                     >
                       Request Table
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </motion.article>

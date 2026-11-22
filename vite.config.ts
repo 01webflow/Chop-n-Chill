@@ -4,9 +4,15 @@ import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({command, mode}) => {
+  const isGhPages =
+    process.env.GITHUB_PAGES === 'true' ||
+    process.env.GITHUB_ACTIONS === 'true' ||
+    mode === 'gh-pages';
+  const base = command === 'serve' ? '/' : isGhPages ? '/Chop-n-Chill/' : './';
+
   return {
-    base: './',
+    base,
     plugins: [
       react(),
       tailwindcss(),

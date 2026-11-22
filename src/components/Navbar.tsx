@@ -1,5 +1,6 @@
 import { Menu, Sparkles, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 
 interface NavbarProps {
   onOpenReserve: () => void;
@@ -7,12 +8,12 @@ interface NavbarProps {
 }
 
 const NAV_LINKS = [
-  { href: '#about', label: 'About' },
-  { href: '#menu', label: 'Our Menu' },
-  { href: '#gallery', label: 'Gallery' },
-  { href: '#entertainment', label: 'Live Band' },
-  { href: '#faq', label: 'FAQ' },
-  { href: '#contact', label: 'Contact' },
+  { to: '/about', label: 'About' },
+  { to: '/menu', label: 'Our Menu' },
+  { to: '/gallery', label: 'Gallery' },
+  { to: '/live-band', label: 'Live Band' },
+  { to: '/faq', label: 'FAQ' },
+  { to: '/contact', label: 'Contact' },
 ];
 
 export function Navbar({ onOpenReserve, onOpenConcierge }: NavbarProps) {
@@ -43,28 +44,37 @@ export function Navbar({ onOpenReserve, onOpenConcierge }: NavbarProps) {
         }`}
       >
         <div className="max-w-7xl mx-auto px-5 sm:px-8 flex items-center justify-between gap-6">
-          <a
-            href="#home"
+          <Link
+            to="/"
             className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-[#F8F4EC] whitespace-nowrap shrink-0"
           >
             Chop &apos;n Chill
-          </a>
+          </Link>
 
           <nav aria-label="Primary Navigation" className="hidden lg:flex items-center gap-6">
-            <a
-              href="#home"
-              className="text-sm font-medium text-[#C8BFA8] hover:text-[#C9A45C] transition-colors whitespace-nowrap shrink-0 underline-offset-8 hover:underline"
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `text-sm font-medium transition-colors whitespace-nowrap shrink-0 underline-offset-8 hover:underline ${
+                  isActive ? 'text-[#C9A45C] underline' : 'text-[#C8BFA8] hover:text-[#C9A45C]'
+                }`
+              }
             >
               Home
-            </a>
+            </NavLink>
             {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-[#C8BFA8] hover:text-[#C9A45C] transition-colors whitespace-nowrap shrink-0 underline-offset-8 hover:underline"
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `text-sm font-medium transition-colors whitespace-nowrap shrink-0 underline-offset-8 hover:underline ${
+                    isActive ? 'text-[#C9A45C] underline' : 'text-[#C8BFA8] hover:text-[#C9A45C]'
+                  }`
+                }
               >
                 {link.label}
-              </a>
+              </NavLink>
             ))}
           </nav>
 
@@ -77,13 +87,13 @@ export function Navbar({ onOpenReserve, onOpenConcierge }: NavbarProps) {
               <Sparkles className="w-3.5 h-3.5" />
               <span>AI Concierge</span>
             </button>
-            <a
-              href="#reservations"
+            <Link
+              to="/reservations"
               onClick={onOpenReserve}
               className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-sm bg-[#C9A45C] text-[#101010] text-xs font-semibold uppercase tracking-[0.14em] hover:bg-[#DFC082] transition-colors whitespace-nowrap shrink-0 min-h-[40px]"
             >
               Reserve Table
-            </a>
+            </Link>
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
@@ -117,22 +127,22 @@ export function Navbar({ onOpenReserve, onOpenConcierge }: NavbarProps) {
           </div>
 
           <nav className="flex flex-col gap-4 my-8">
-            <a
-              href="#home"
+            <Link
+              to="/"
               onClick={() => setMobileOpen(false)}
               className="font-display text-3xl text-[#F8F4EC] hover:text-[#C9A45C]"
             >
               Home
-            </a>
+            </Link>
             {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
+              <Link
+                key={link.to}
+                to={link.to}
                 onClick={() => setMobileOpen(false)}
                 className="font-display text-3xl text-[#F8F4EC] hover:text-[#C9A45C]"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -148,8 +158,8 @@ export function Navbar({ onOpenReserve, onOpenConcierge }: NavbarProps) {
               <Sparkles className="w-4 h-4" />
               <span>Talk to AI Concierge</span>
             </button>
-            <a
-              href="#reservations"
+            <Link
+              to="/reservations"
               onClick={() => {
                 setMobileOpen(false);
                 onOpenReserve();
@@ -157,7 +167,7 @@ export function Navbar({ onOpenReserve, onOpenConcierge }: NavbarProps) {
               className="inline-flex items-center justify-center py-3.5 px-6 rounded-sm bg-[#C9A45C] text-[#101010] text-xs font-semibold uppercase tracking-[0.14em] min-h-[46px]"
             >
               Reserve Your Table
-            </a>
+            </Link>
             <a
               href="tel:+233554903755"
               className="inline-flex items-center justify-center py-3.5 px-6 rounded-sm border border-[#C9A45C]/40 text-[#F8F4EC] text-xs font-semibold uppercase tracking-[0.14em] min-h-[46px]"

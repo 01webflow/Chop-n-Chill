@@ -1,6 +1,7 @@
 import { ArrowRight, Eye, Rotate3d } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { lazy, Suspense, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { resolvePublicAssetUrl } from '../lib/assets';
 import { GalleryItem } from '../types';
 
@@ -175,19 +176,19 @@ export function AboutSection({ aboutImage, gallery = [] }: AboutSectionProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
-              <a
-                href="#menu"
+              <Link
+                to="/menu"
                 className="inline-flex items-center justify-center px-7 py-3.5 rounded-sm bg-[#C9A45C] text-[#101010] text-xs font-semibold uppercase tracking-[0.15em] hover:bg-[#DFC082] hover:-translate-y-0.5 transition-all whitespace-nowrap shrink-0 min-h-[46px]"
               >
                 Discover Chop &apos;n Chill
-              </a>
-              <a
-                href="#gallery"
+              </Link>
+              <Link
+                to="/gallery"
                 className="inline-flex items-center gap-2 px-5 py-3.5 rounded-sm border border-[#F8F4EC]/20 text-xs font-semibold uppercase tracking-[0.14em] text-[#DFC082] hover:border-[#C9A45C] transition-colors min-h-[46px]"
               >
                 <span>Browse Venue Photos</span>
                 <ArrowRight className="w-3.5 h-3.5" />
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>
@@ -204,20 +205,20 @@ export function AboutSection({ aboutImage, gallery = [] }: AboutSectionProps) {
                   Restaurant Atmosphere Preview
                 </h3>
               </div>
-              <a
-                href="#gallery"
+              <Link
+                to="/gallery"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#DFC082] hover:underline whitespace-nowrap shrink-0"
               >
                 <span>Open Full Gallery ({gallery.length})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
-              </a>
+              </Link>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {previewPhotos.map((photo) => (
-                <a
+                <Link
                   key={photo.id}
-                  href="#gallery"
+                  to="/gallery"
                   className="group relative aspect-[3/4] rounded-sm overflow-hidden border border-[#F8F4EC]/12 bg-[#121212] hover:border-[#C9A45C]/55 transition-colors"
                 >
                   <img
@@ -240,7 +241,7 @@ export function AboutSection({ aboutImage, gallery = [] }: AboutSectionProps) {
                       {photo.title}
                     </p>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
           </div>
