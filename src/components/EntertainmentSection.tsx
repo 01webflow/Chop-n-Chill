@@ -1,5 +1,6 @@
 import { Calendar, Clock, Music2 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { resolvePublicAssetUrl } from '../lib/assets';
 import { EventItem } from '../types';
 
 interface EntertainmentSectionProps {
@@ -55,19 +56,20 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
             <div className="relative h-full min-h-[320px] sm:min-h-[400px] rounded-sm overflow-hidden border border-[#C9A45C]/30 bg-[#101010] shadow-2xl">
               <img
                 src={liveImage}
-                alt="Illustrative live band lounge atmosphere concept"
+                alt="Live band and vocalist performing with drums, keyboards, and sound monitors beneath Chop 'n Chill Kasoa's covered pavilion"
                 referrerPolicy="no-referrer"
                 loading="lazy"
-                className="w-full h-full object-cover"
+                decoding="async"
+                className="w-full h-full object-cover object-center"
               />
               <div
                 className="absolute inset-x-0 bottom-0 p-5"
                 style={{
-                  background: 'linear-gradient(to top, rgba(16,16,16,0.9), transparent)',
+                  background: 'linear-gradient(to top, rgba(16,16,16,0.92), transparent)',
                 }}
               >
                 <p className="text-xs text-[#DFC082]">
-                  Live-Band Lounge Experience · Illustrative concept until venue photos are uploaded
+                  Live Band Under the Covered Pavilion · Archive venue photo (confirm owner &amp; performer rights)
                 </p>
               </div>
             </div>
@@ -106,7 +108,7 @@ export function EntertainmentSection({ events, liveImage }: EntertainmentSection
                 <div className="sm:w-44 aspect-[4/3] sm:aspect-auto sm:h-auto shrink-0 rounded-sm overflow-hidden bg-[#1C1C1C]">
                   {ev.promoImage ? (
                     <img
-                      src={ev.promoImage}
+                      src={resolvePublicAssetUrl(ev.promoImage)}
                       alt={ev.title}
                       referrerPolicy="no-referrer"
                       loading="lazy"

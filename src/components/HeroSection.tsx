@@ -1,11 +1,14 @@
 import { MapPin, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { resolvePublicAssetUrl } from '../lib/assets';
 import { RestaurantSettings } from '../types';
 
 const LazyHero3DScene = lazy(() => import('./three/Hero3DScene'));
 
-const HERO_3D_FALLBACK_IMAGE = '/src/assets/images/about_terrace_dining_1795211571923.jpg';
+const HERO_3D_FALLBACK_IMAGE = resolvePublicAssetUrl(
+  '/images/restaurant/chop-n-chill-exterior-day-terrace.jpg'
+);
 
 interface HeroSectionProps {
   settings: RestaurantSettings;
@@ -47,9 +50,11 @@ export function HeroSection({ settings, heroImage, onOpenConcierge }: HeroSectio
       <motion.div style={{ y: bgY }} className="absolute inset-0">
         <img
           src={heroImage}
-          alt="Illustrative architectural night exterior concept for Chop 'n Chill Restaurant & Lounge, Kasoa"
+          alt="Chop 'n Chill Restaurant & Lounge exterior at night in Kasoa showing illuminated logo sign, warm string lights, outdoor seating, and live band area"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-[1.04]"
+          fetchPriority="high"
+          decoding="async"
+          className="w-full h-full object-cover object-center scale-[1.03]"
         />
         <div
           className="absolute inset-0"
@@ -150,8 +155,10 @@ export function HeroSection({ settings, heroImage, onOpenConcierge }: HeroSectio
         <div className="mt-8 lg:hidden relative rounded-sm overflow-hidden border border-[#C9A45C]/30 bg-[#141414] shadow-xl">
           <img
             src={HERO_3D_FALLBACK_IMAGE}
-            alt="Chop 'n Chill Kasoa upstairs terrace and evening lounge ambience"
+            alt="Daytime view of Chop 'n Chill Kasoa building, upstairs terrace balcony, and courtyard patio tables"
             referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
             className="w-full h-44 sm:h-56 object-cover object-center"
           />
           <div
@@ -164,10 +171,10 @@ export function HeroSection({ settings, heroImage, onOpenConcierge }: HeroSectio
           <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between gap-2">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#C9A45C]">
-                Upstairs Terrace &amp; Lounge
+                Upstairs Terrace &amp; Courtyard Patio
               </p>
               <p className="text-xs text-[#E6DFD1]">
-                Afro-modern dining &amp; weekend live-band vibes
+                Chop &apos;n Chill Kasoa · Archive photo (confirm usage rights before publication)
               </p>
             </div>
           </div>

@@ -61,15 +61,13 @@ const ORDER_STATUSES: OrderStatus[] = [
 ];
 
 const GALLERY_CATEGORIES: GalleryCategory[] = [
-  'Exterior',
-  'Interior',
-  'Terrace',
-  'Signature Dishes',
-  'Grilled Fish',
-  'Rice Dishes',
-  'Drinks',
-  'Live Band',
-  'Guest Experiences',
+  'Restaurant exterior',
+  'Restaurant interior',
+  'Food and signature dishes',
+  'Drinks and refreshments',
+  'Outdoor dining and terrace',
+  'Live entertainment',
+  'Restaurant atmosphere',
 ];
 
 export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDashboardProps) {
@@ -119,7 +117,7 @@ export function AdminDashboard({ open, onClose, onPublicDataChanged }: AdminDash
 
   // New Gallery form
   const [newGalTitle, setNewGalTitle] = useState('');
-  const [newGalCat, setNewGalCat] = useState<GalleryCategory>('Exterior');
+  const [newGalCat, setNewGalCat] = useState<GalleryCategory>('Restaurant exterior');
   const [newGalImage, setNewGalImage] = useState('');
   const [newGalVerified, setNewGalVerified] = useState(true);
 

@@ -14,67 +14,16 @@ import { Navbar } from './components/Navbar';
 import { OrderDrawer, TrayItem } from './components/OrderDrawer';
 import { ReservationsSection } from './components/ReservationsSection';
 import { TestimonialsSection } from './components/TestimonialsSection';
+import { DEFAULT_PUBLIC_STORE } from './data/defaultPublicStore';
+import { resolvePublicAssetUrl } from './lib/assets';
 import { MenuItem, PublicStorePayload } from './types';
 
-const HERO_IMAGE = '/src/assets/images/hero_chop_chill_exterior_1795211571468.jpg';
-const ABOUT_IMAGE = '/src/assets/images/about_terrace_dining_1795211571923.jpg';
-const LIVE_IMAGE = '/src/assets/images/live_band_lounge_1795211571900.jpg';
-
-const INITIAL_FALLBACK_DATA: PublicStorePayload = {
-  settings: {
-    businessName: "Chop 'n Chill Restaurant & Lounge",
-    address: 'HH3J+G5M, Kasoa, Ghana',
-    phone: '+233 55 490 3755',
-    whatsappNumber: '233554903755',
-    googleMapsUrl: 'https://maps.app.goo.gl/kUKzbf8rbvxfX9BK6',
-    openingHours:
-      'Schedule editable in Owner Portal — please call +233 55 490 3755 to confirm daily hours.',
-    deliveryNote:
-      'Dine-in, takeaway, and delivery available. Delivery coverage confirmed by staff upon enquiry.',
-    socials: [],
-  },
-  aiPublicConfig: {
-    receptionistName: 'AI Concierge',
-    voiceEnabled: true,
-  },
-  menu: [],
-  events: [],
-  gallery: [],
-  faqs: [
-    {
-      id: 'faq-parking',
-      category: 'Location & Parking',
-      question: "Is parking available at Chop 'n Chill in Kasoa?",
-      answer:
-        'Please call +233 55 490 3755 or message us on WhatsApp prior to your visit to confirm current parking access near HH3J+G5M, Kasoa—especially during weekend live-band evenings.',
-      isPlaceholder: true,
-    },
-    {
-      id: 'faq-deposits',
-      category: 'Reservations',
-      question: 'Do you require a deposit for table reservations or group bookings?',
-      answer:
-        'Online reservation requests do not charge any payment upfront and are only confirmed once Chop \'n Chill staff respond. Any group deposit policy is confirmed directly by our team.',
-      isPlaceholder: true,
-    },
-    {
-      id: 'faq-dietary',
-      category: 'Menu & Dietary',
-      question: 'Can you accommodate dietary preferences or food allergies?',
-      answer:
-        'Please note allergies or spice preferences in Special Requests and confirm specific dish ingredients directly with our kitchen team at +233 55 490 3755 before ordering.',
-      isPlaceholder: true,
-    },
-  ],
-  tableSummary: {
-    total: 5,
-    available: 5,
-    areas: ['Indoor Dining', 'Outdoor Dining', 'Upstairs Terrace'],
-  },
-};
+const HERO_IMAGE = resolvePublicAssetUrl('/images/restaurant/chop-n-chill-exterior-night-lights.jpg');
+const ABOUT_IMAGE = resolvePublicAssetUrl('/images/restaurant/chop-n-chill-exterior-day-terrace.jpg');
+const LIVE_IMAGE = resolvePublicAssetUrl('/images/restaurant/chop-n-chill-live-band-performance.jpg');
 
 export default function App() {
-  const [data, setData] = useState<PublicStorePayload>(INITIAL_FALLBACK_DATA);
+  const [data, setData] = useState<PublicStorePayload>(DEFAULT_PUBLIC_STORE);
   const [tray, setTray] = useState<TrayItem[]>([]);
   const [trayOpen, setTrayOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
@@ -82,12 +31,16 @@ export default function App() {
 
   const loadPublicStore = useCallback(async () => {
     try {
-      const resp = await fetch('/api/public');
+      const resp = await fetch('api/public');
       if (!resp.ok) return;
+      const contentType = resp.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) return;
       const payload = (await resp.json()) as PublicStorePayload;
-      setData(payload);
+      if (payload && Array.isArray(payload.menu) && Array.isArray(payload.gallery)) {
+        setData(payload);
+      }
     } catch {
-      // Keep fallback data if offline
+      // Keep complete static fallback data when hosted without backend (e.g. GitHub Pages)
     }
   }, []);
 
@@ -130,7 +83,7 @@ export default function App() {
           onOpenConcierge={() => setConciergeOpenSignal((n) => n + 1)}
         />
 
-        <AboutSection aboutImage={ABOUT_IMAGE} />
+        <AboutSection aboutImage={ABOUT_IMAGE} gallery={data.gallery} />
 
         <MenuSection
           menu={data.menu}

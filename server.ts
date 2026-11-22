@@ -17,6 +17,7 @@ import {
   runConciergeChatTurn,
   sanitizeTranscriptText,
 } from './server/aiConcierge.ts';
+import { DEFAULT_PUBLIC_STORE } from './src/data/defaultPublicStore.ts';
 import type {
   AiConciergeConfig,
   AiConversationLog,
@@ -86,235 +87,11 @@ const DEFAULT_STORE: PersistedStore = {
   adminCredentialHash: null,
   staffCredentialHash: null,
   aiConfig: DEFAULT_AI_CONFIG,
-  settings: {
-    businessName: "Chop 'n Chill Restaurant & Lounge",
-    address: 'HH3J+G5M, Kasoa, Ghana',
-    phone: '+233 55 490 3755',
-    whatsappNumber: '233554903755',
-    googleMapsUrl: 'https://maps.app.goo.gl/kUKzbf8rbvxfX9BK6',
-    openingHours: 'Schedule editable in Owner Portal — please call +233 55 490 3755 to confirm daily hours.',
-    deliveryNote: 'Dine-in, takeaway, and delivery available. Delivery coverage confirmed by staff upon enquiry.',
-    socials: [
-      { id: 'soc-ig', label: 'Instagram (Editable URL)', url: '' },
-      { id: 'soc-fb', label: 'Facebook (Editable URL)', url: '' },
-      { id: 'soc-tt', label: 'TikTok (Editable URL)', url: '' },
-    ],
-  },
-  menu: [
-    {
-      id: 'menu-banku-fish',
-      name: 'Banku with Grilled Fish',
-      category: 'Ghanaian Specialties',
-      priceCedi: null,
-      priceLabel: 'Price TBD (Editable)',
-      description: 'Customer favourite from Google reviews. Editable ingredients and portion details.',
-      isFavourite: true,
-      isPlaceholderDescription: true,
-      available: true,
-      image: '/src/assets/images/dish_banku_grilled_fish_1795211571848.jpg',
-      imageVerified: false,
-    },
-    {
-      id: 'menu-assorted-fried-rice',
-      name: 'Assorted Fried Rice',
-      category: 'Rice Dishes',
-      priceCedi: null,
-      priceLabel: 'Price TBD (Editable)',
-      description: 'Customer favourite from Google reviews. Editable description and garnish options.',
-      isFavourite: true,
-      isPlaceholderDescription: true,
-      available: true,
-      image: '/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg',
-      imageVerified: false,
-    },
-    {
-      id: 'menu-assorted-jollof',
-      name: 'Assorted Jollof Rice',
-      category: 'Rice Dishes',
-      priceCedi: null,
-      priceLabel: 'Price TBD (Editable)',
-      description: 'Customer favourite from Google reviews. Editable description and protein pairings.',
-      isFavourite: true,
-      isPlaceholderDescription: true,
-      available: true,
-      image: '/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg',
-      imageVerified: false,
-    },
-    {
-      id: 'menu-chicken-kebab',
-      name: 'Chicken Kebab',
-      category: 'Grills & Barbecue',
-      priceCedi: null,
-      priceLabel: 'Price TBD (Editable)',
-      description: 'Customer favourite from Google reviews. Editable marinade and skewer details.',
-      isFavourite: true,
-      isPlaceholderDescription: true,
-      available: true,
-      image: '/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg',
-      imageVerified: false,
-    },
-    {
-      id: 'menu-samosas',
-      name: 'Samosas',
-      category: 'Appetizers & Small Chops',
-      priceCedi: null,
-      priceLabel: 'Price TBD (Editable)',
-      description: 'Customer favourite from Google reviews. Editable filling and portion count.',
-      isFavourite: true,
-      isPlaceholderDescription: true,
-      available: true,
-      image: '/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg',
-      imageVerified: false,
-    },
-    {
-      id: 'menu-beverages-placeholder',
-      name: 'Lounge Drinks & Fresh Juices (Placeholder)',
-      category: 'Drinks & Beverages',
-      priceCedi: null,
-      priceLabel: 'Price TBD (Editable)',
-      description: 'Editable beverage slot — populate confirmed cocktails, soft drinks, and fresh juices in the Owner Portal.',
-      isFavourite: false,
-      isPlaceholderDescription: true,
-      available: true,
-      image: '/src/assets/images/about_terrace_dining_1795211571923.jpg',
-      imageVerified: false,
-    },
-    {
-      id: 'menu-chef-special-placeholder',
-      name: "Chef's Platter (Editable Placeholder)",
-      category: "Chef's Specials",
-      priceCedi: null,
-      priceLabel: 'Price TBD (Editable)',
-      description: "Editable Chef's Special entry — add confirmed house specialties and GH₵ pricing in the Owner Portal.",
-      isFavourite: false,
-      isPlaceholderDescription: true,
-      available: true,
-      image: '/src/assets/images/dish_banku_grilled_fish_1795211571848.jpg',
-      imageVerified: false,
-    },
-  ],
-  events: [
-    {
-      id: 'evt-weekend-band',
-      title: 'Weekend Live-Band Nights (Schedule Editable)',
-      date: 'Upcoming Date TBD',
-      startTime: 'Start Time TBD',
-      performers: 'Featured Performers TBD',
-      description: "Live-band entertainment is part of the Chop 'n Chill weekend lounge experience. Management can publish verified dates, performers, and start times here.",
-      promoImage: '/src/assets/images/live_band_lounge_1795211571900.jpg',
-      isPlaceholder: true,
-    },
-    {
-      id: 'evt-terrace-social',
-      title: 'Upstairs Terrace Lounge Evenings (Schedule Editable)',
-      date: 'Upcoming Date TBD',
-      startTime: 'Start Time TBD',
-      performers: 'Host / Band TBD',
-      description: "An editable upcoming-event slot for group hangouts, acoustic sets, or special celebrations at Chop 'n Chill Kasoa.",
-      promoImage: '/src/assets/images/about_terrace_dining_1795211571923.jpg',
-      isPlaceholder: true,
-    },
-  ],
-  gallery: [
-    {
-      id: 'gal-exterior',
-      title: 'Evening Exterior & Warm Lighting',
-      category: 'Exterior',
-      image: '/src/assets/images/hero_chop_chill_exterior_1795211571468.jpg',
-      caption: "Illustrative architectural concept — upload a verified Chop 'n Chill exterior photo in the Owner Portal.",
-      isVerifiedVenuePhoto: false,
-    },
-    {
-      id: 'gal-terrace',
-      title: 'Indoor Dining & Upstairs Terrace',
-      category: 'Terrace',
-      image: '/src/assets/images/about_terrace_dining_1795211571923.jpg',
-      caption: 'Illustrative indoor and upstairs terrace ambience — replace with verified venue photography anytime.',
-      isVerifiedVenuePhoto: false,
-    },
-    {
-      id: 'gal-banku',
-      title: 'Banku with Grilled Fish',
-      category: 'Grilled Fish',
-      image: '/src/assets/images/dish_banku_grilled_fish_1795211571848.jpg',
-      caption: 'Illustrative dish presentation of Banku with charcoal-grilled fish — upload kitchen photography in Admin.',
-      isVerifiedVenuePhoto: false,
-    },
-    {
-      id: 'gal-rice-kebab',
-      title: 'Assorted Rice, Chicken Kebab & Samosas',
-      category: 'Rice Dishes',
-      image: '/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg',
-      caption: 'Illustrative spread featuring assorted jollof, fried rice, chicken kebab, and samosas.',
-      isVerifiedVenuePhoto: false,
-    },
-    {
-      id: 'gal-liveband',
-      title: 'Weekend Live-Band Lounge',
-      category: 'Live Band',
-      image: '/src/assets/images/live_band_lounge_1795211571900.jpg',
-      caption: 'Illustrative live music lounge atmosphere — upload verified weekend performance photos in Admin.',
-      isVerifiedVenuePhoto: false,
-    },
-    {
-      id: 'gal-interior',
-      title: 'Intimate Dining & Group Tables',
-      category: 'Interior',
-      image: '/src/assets/images/about_terrace_dining_1795211571923.jpg',
-      caption: 'Illustrative table setting for romantic dates, family dining, and group gatherings.',
-      isVerifiedVenuePhoto: false,
-    },
-  ],
-  faqs: [
-    {
-      id: 'faq-parking',
-      category: 'Location & Parking',
-      question: "Is parking available at Chop 'n Chill in Kasoa?",
-      answer:
-        "Please call +233 55 490 3755 or message us on WhatsApp prior to your visit to confirm current parking access near HH3J+G5M, Kasoa—especially during peak weekend live-band evenings. Management can publish exact parking details in the Owner Portal.",
-      isPlaceholder: true,
-    },
-    {
-      id: 'faq-directions',
-      category: 'Location & Parking',
-      question: "Where is Chop 'n Chill located and what are your opening hours?",
-      answer:
-        'We are located at HH3J+G5M, Kasoa, Ghana (linked directly on Google Maps). Current opening hours are editable by management—please call +233 55 490 3755 to confirm daily hours before visiting.',
-      isPlaceholder: true,
-    },
-    {
-      id: 'faq-deposits',
-      category: 'Reservations',
-      question: 'Do you require a deposit for table reservations or group bookings?',
-      answer:
-        "Submitting a reservation request on our website does not charge any payment or deposit upfront, and your booking is only confirmed once Chop 'n Chill staff respond. Any deposit requirement for large groups or reserved terrace tables is confirmed directly by our host team.",
-      isPlaceholder: true,
-    },
-    {
-      id: 'faq-dietary',
-      category: 'Menu & Dietary',
-      question: 'Can you accommodate dietary preferences or food allergies?',
-      answer:
-        'Please share allergies, spice levels, or dietary requests in the Special Requests field when reserving or ordering, and verify ingredients directly with our kitchen staff at +233 55 490 3755 before ordering.',
-      isPlaceholder: true,
-    },
-    {
-      id: 'faq-services',
-      category: 'Menu & Dietary',
-      question: 'Do you offer takeaway and delivery in Kasoa?',
-      answer:
-        'Yes — Dine-in, Takeaway, and Delivery are available. Use our Order Enquiry Tray or call +233 55 490 3755 to confirm dish pricing in GH₵ and delivery coverage for your area.',
-      isPlaceholder: false,
-    },
-    {
-      id: 'faq-spaces',
-      category: 'Lounge & Live Band',
-      question: 'What seating options and live entertainment are available?',
-      answer:
-        "Chop 'n Chill Restaurant & Lounge offers indoor dining, outdoor dining, and an upstairs terrace, plus weekend live-band entertainment suited for romantic dates, family dining, and group hangouts.",
-      isPlaceholder: false,
-    },
-  ],
+  settings: structuredClone(DEFAULT_PUBLIC_STORE.settings),
+  menu: structuredClone(DEFAULT_PUBLIC_STORE.menu),
+  events: structuredClone(DEFAULT_PUBLIC_STORE.events),
+  gallery: structuredClone(DEFAULT_PUBLIC_STORE.gallery),
+  faqs: structuredClone(DEFAULT_PUBLIC_STORE.faqs),
   tables: [
     { id: 'T-01', name: 'Indoor Table 01', area: 'Indoor Dining', capacity: 4, status: 'Available' },
     { id: 'T-02', name: 'Indoor Booth 02', area: 'Indoor Dining', capacity: 6, status: 'Available' },
@@ -355,6 +132,19 @@ function pruneExpiredConversations(store: PersistedStore): void {
     .slice(0, 120);
 }
 
+const LEGACY_GALLERY_CATEGORIES = new Set([
+  'Exterior',
+  'Terrace',
+  'Grilled Fish',
+  'Rice Dishes',
+  'Live Band',
+  'Interior',
+]);
+
+function isLegacyAssetUrl(url?: string): boolean {
+  return typeof url === 'string' && url.includes('/src/assets/images/');
+}
+
 function ensureStore(): PersistedStore {
   if (memoryStoreFallback) {
     pruneExpiredConversations(memoryStoreFallback);
@@ -372,9 +162,54 @@ function ensureStore(): PersistedStore {
     const parsed = JSON.parse(raw) as Partial<PersistedStore>;
     const rawFaqs = Array.isArray(parsed.faqs) && parsed.faqs.length > 0 ? parsed.faqs : DEFAULT_STORE.faqs;
     const rawReservations = Array.isArray(parsed.reservations) ? parsed.reservations : [];
+
+    let migrated = false;
+
+    const rawMenu = Array.isArray(parsed.menu) && parsed.menu.length > 0 ? parsed.menu : DEFAULT_STORE.menu;
+    const menu = rawMenu.map((item) => {
+      if (isLegacyAssetUrl(item.image)) {
+        migrated = true;
+        const defaultMatch = DEFAULT_STORE.menu.find((d) => d.id === item.id);
+        return {
+          ...item,
+          image: defaultMatch ? defaultMatch.image : '',
+          imageVerified: false,
+        };
+      }
+      return item;
+    });
+
+    const rawEvents =
+      Array.isArray(parsed.events) && parsed.events.length > 0 ? parsed.events : DEFAULT_STORE.events;
+    const events = rawEvents.map((ev) => {
+      if (isLegacyAssetUrl(ev.promoImage)) {
+        migrated = true;
+        const defaultMatch = DEFAULT_STORE.events.find((d) => d.id === ev.id);
+        return {
+          ...ev,
+          promoImage: defaultMatch ? defaultMatch.promoImage : '',
+        };
+      }
+      return ev;
+    });
+
+    const rawGallery = Array.isArray(parsed.gallery) ? parsed.gallery : DEFAULT_STORE.gallery;
+    const hasLegacyGallery =
+      rawGallery.length > 0 &&
+      rawGallery.every(
+        (g) => isLegacyAssetUrl(g.image) || LEGACY_GALLERY_CATEGORIES.has(String(g.category))
+      );
+    if (hasLegacyGallery) {
+      migrated = true;
+    }
+    const gallery = hasLegacyGallery ? structuredClone(DEFAULT_STORE.gallery) : rawGallery;
+
     const hydrated: PersistedStore = {
       ...structuredClone(DEFAULT_STORE),
       ...parsed,
+      menu,
+      events,
+      gallery,
       aiConfig: { ...DEFAULT_AI_CONFIG, ...(parsed.aiConfig || {}) },
       faqs: rawFaqs.map((f) => ({ ...f, category: normalizeFaqCategory(String(f.category)) })),
       reservations: rawReservations.map((r) => ({
@@ -386,6 +221,9 @@ function ensureStore(): PersistedStore {
       settings: { ...DEFAULT_STORE.settings, ...(parsed.settings || {}) },
     };
     pruneExpiredConversations(hydrated);
+    if (migrated) {
+      writeStore(hydrated);
+    }
     return hydrated;
   } catch {
     memoryStoreFallback = structuredClone(DEFAULT_STORE);
@@ -464,7 +302,7 @@ function verifySessionToken(token: string): StaffRole | null {
 
 function isSafeMediaUrl(url: string): boolean {
   if (!url) return true;
-  if (url.startsWith('/src/assets/')) return true;
+  if (url.startsWith('/src/assets/') || url.startsWith('/images/')) return true;
   if (/^data:image\/(png|jpeg|jpg|webp|avif);base64,[A-Za-z0-9+/=]+$/.test(url) && url.length <= 2_500_000) {
     return true;
   }

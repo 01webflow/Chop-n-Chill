@@ -41,23 +41,25 @@ export interface EventItem {
 }
 
 export type GalleryCategory =
-  | 'Exterior'
-  | 'Interior'
-  | 'Terrace'
-  | 'Signature Dishes'
-  | 'Grilled Fish'
-  | 'Rice Dishes'
-  | 'Drinks'
-  | 'Live Band'
-  | 'Guest Experiences';
+  | 'Restaurant exterior'
+  | 'Restaurant interior'
+  | 'Food and signature dishes'
+  | 'Drinks and refreshments'
+  | 'Outdoor dining and terrace'
+  | 'Live entertainment'
+  | 'Restaurant atmosphere';
 
 export interface GalleryItem {
   id: string;
   title: string;
   category: GalleryCategory;
   image: string;
+  alt?: string;
   caption: string;
+  orientation?: 'landscape' | 'portrait' | 'square';
   isVerifiedVenuePhoto: boolean;
+  requiresPermission?: boolean;
+  sourceNote?: string;
 }
 
 export type TableArea = 'Indoor Dining' | 'Outdoor Dining' | 'Upstairs Terrace';

@@ -7,7 +7,7 @@
     "customKnowledgeBase": "Highlight our indoor dining room, outdoor courtyard, and breezy upstairs terrace. Remind guests that weekend live-band schedules and GH₵ menu prices marked TBD are confirmed directly by management or on WhatsApp (+233 55 490 3755).",
     "voiceEnabled": true,
     "retentionDays": 14,
-    "updatedAt": "2026-11-21T15:10:20.648Z"
+    "updatedAt": "2026-11-22T09:28:26.880Z"
   },
   "settings": {
     "businessName": "Chop 'n Chill Restaurant & Lounge",
@@ -46,7 +46,7 @@
       "isFavourite": true,
       "isPlaceholderDescription": true,
       "available": true,
-      "image": "/src/assets/images/dish_banku_grilled_fish_1795211571848.jpg",
+      "image": "",
       "imageVerified": false
     },
     {
@@ -59,7 +59,7 @@
       "isFavourite": true,
       "isPlaceholderDescription": true,
       "available": true,
-      "image": "/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg",
+      "image": "",
       "imageVerified": false
     },
     {
@@ -72,7 +72,7 @@
       "isFavourite": true,
       "isPlaceholderDescription": true,
       "available": true,
-      "image": "/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg",
+      "image": "",
       "imageVerified": false
     },
     {
@@ -85,7 +85,7 @@
       "isFavourite": true,
       "isPlaceholderDescription": true,
       "available": true,
-      "image": "/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg",
+      "image": "",
       "imageVerified": false
     },
     {
@@ -98,7 +98,7 @@
       "isFavourite": true,
       "isPlaceholderDescription": true,
       "available": true,
-      "image": "/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg",
+      "image": "",
       "imageVerified": false
     },
     {
@@ -107,11 +107,11 @@
       "category": "Drinks & Beverages",
       "priceCedi": null,
       "priceLabel": "Price TBD (Editable)",
-      "description": "Editable beverage slot — populate confirmed cocktails, soft drinks, and fresh juices in the Owner Portal.",
+      "description": "Chilled citrus & mint lounge beverages and bar refreshments. Confirm exact drink list and GH₵ pricing in the Owner Portal.",
       "isFavourite": false,
       "isPlaceholderDescription": true,
       "available": true,
-      "image": "/src/assets/images/about_terrace_dining_1795211571923.jpg",
+      "image": "/images/restaurant/chop-n-chill-chilled-bar-cocktails.jpg",
       "imageVerified": false
     },
     {
@@ -124,7 +124,7 @@
       "isFavourite": false,
       "isPlaceholderDescription": true,
       "available": true,
-      "image": "/src/assets/images/dish_banku_grilled_fish_1795211571848.jpg",
+      "image": "",
       "imageVerified": false
     }
   ],
@@ -136,7 +136,7 @@
       "startTime": "Start Time TBD",
       "performers": "Featured Performers TBD",
       "description": "Live-band entertainment is part of the Chop 'n Chill weekend lounge experience. Management can publish verified dates, performers, and start times here.",
-      "promoImage": "/src/assets/images/live_band_lounge_1795211571900.jpg",
+      "promoImage": "/images/restaurant/chop-n-chill-live-band-performance.jpg",
       "isPlaceholder": true
     },
     {
@@ -146,58 +146,130 @@
       "startTime": "Start Time TBD",
       "performers": "Host / Band TBD",
       "description": "An editable upcoming-event slot for group hangouts, acoustic sets, or special celebrations at Chop 'n Chill Kasoa.",
-      "promoImage": "/src/assets/images/about_terrace_dining_1795211571923.jpg",
+      "promoImage": "/images/restaurant/chop-n-chill-exterior-day-terrace.jpg",
       "isPlaceholder": true
     }
   ],
   "gallery": [
     {
-      "id": "gal-exterior",
-      "title": "Evening Exterior & Warm Lighting",
-      "category": "Exterior",
-      "image": "/src/assets/images/hero_chop_chill_exterior_1795211571468.jpg",
-      "caption": "Illustrative architectural concept — upload a verified Chop 'n Chill exterior photo in the Owner Portal.",
-      "isVerifiedVenuePhoto": false
+      "id": "gal-exterior-night",
+      "title": "Evening Exterior & Warm Porch Lights",
+      "category": "Restaurant exterior",
+      "image": "/images/restaurant/chop-n-chill-exterior-night-lights.jpg",
+      "alt": "Chop 'n Chill Restaurant & Lounge exterior at night in Kasoa showing illuminated logo sign, warm string lights, outdoor seating, and live band setup",
+      "caption": "Chop 'n Chill Kasoa evening frontage with illuminated signage, string lights, and outdoor terrace seating. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "landscape",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (rb6d-Chop-n-Chill-Kasoa-design.jpg)"
     },
     {
-      "id": "gal-terrace",
-      "title": "Indoor Dining & Upstairs Terrace",
-      "category": "Terrace",
-      "image": "/src/assets/images/about_terrace_dining_1795211571923.jpg",
-      "caption": "Illustrative indoor and upstairs terrace ambience — replace with verified venue photography anytime.",
-      "isVerifiedVenuePhoto": false
-    },
-    {
-      "id": "gal-banku",
-      "title": "Banku with Grilled Fish",
-      "category": "Grilled Fish",
-      "image": "/src/assets/images/dish_banku_grilled_fish_1795211571848.jpg",
-      "caption": "Illustrative dish presentation of Banku with charcoal-grilled fish — upload kitchen photography in Admin.",
-      "isVerifiedVenuePhoto": false
-    },
-    {
-      "id": "gal-rice-kebab",
-      "title": "Assorted Rice, Chicken Kebab & Samosas",
-      "category": "Rice Dishes",
-      "image": "/src/assets/images/dish_jollof_kebab_feast_1795211571034.jpg",
-      "caption": "Illustrative spread featuring assorted jollof, fried rice, chicken kebab, and samosas.",
-      "isVerifiedVenuePhoto": false
+      "id": "gal-terrace-day",
+      "title": "Two-Story Facade & Upstairs Terrace",
+      "category": "Outdoor dining and terrace",
+      "image": "/images/restaurant/chop-n-chill-exterior-day-terrace.jpg",
+      "alt": "Daytime view of Chop 'n Chill Restaurant & Lounge Kasoa showing circular signage, upstairs terrace balcony, and outdoor red courtyard tables",
+      "caption": "Daytime courtyard patio and upstairs terrace overlooking Kasoa. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "landscape",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (raef-Chop-n-Chill-Kasoa-design-2026-04.jpg)"
     },
     {
       "id": "gal-liveband",
-      "title": "Weekend Live-Band Lounge",
-      "category": "Live Band",
-      "image": "/src/assets/images/live_band_lounge_1795211571900.jpg",
-      "caption": "Illustrative live music lounge atmosphere — upload verified weekend performance photos in Admin.",
-      "isVerifiedVenuePhoto": false
+      "title": "Live-Band Performance Under the Pavilion",
+      "category": "Live entertainment",
+      "image": "/images/restaurant/chop-n-chill-live-band-performance.jpg",
+      "alt": "Live vocalist and band performing with keyboard rig, drums, and sound monitors beneath Chop 'n Chill Kasoa's covered pavilion",
+      "caption": "Live vocalist and band performing on Chop 'n Chill's outdoor pavilion stage. Archive photo — confirm owner & performer rights before commercial publication.",
+      "orientation": "landscape",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (r2b1-Chop-n-Chill-Kasoa-meals.jpg)"
     },
     {
-      "id": "gal-interior",
-      "title": "Intimate Dining & Group Tables",
-      "category": "Interior",
-      "image": "/src/assets/images/about_terrace_dining_1795211571923.jpg",
-      "caption": "Illustrative table setting for romantic dates, family dining, and group gatherings.",
-      "isVerifiedVenuePhoto": false
+      "id": "gal-interior-dining",
+      "title": "Indoor Dining Room & Slate Accent Walls",
+      "category": "Restaurant interior",
+      "image": "/images/restaurant/chop-n-chill-interior-dining-room.jpg",
+      "alt": "Chop 'n Chill Kasoa indoor dining room with slate-textured walls, patterned stone floor tiles, pendant lights, and wood tables",
+      "caption": "Air-conditioned indoor dining room with textured slate walls and pendant lighting. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "portrait",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (r313-interior-Chop-n-Chill-Kasoa.jpg)"
+    },
+    {
+      "id": "gal-entrance-night",
+      "title": "Illuminated Entrance & Patio Tables",
+      "category": "Restaurant exterior",
+      "image": "/images/restaurant/chop-n-chill-entrance-signage-night.jpg",
+      "alt": "Close-up evening view of Chop 'n Chill Restaurant & Lounge signage, outdoor porch tables, and glass doors to the indoor reception counter",
+      "caption": "Night entrance looking directly into the Chop 'n Chill reception desk and patio seating. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "landscape",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (r1f4-Chop-n-Chill-Kasoa-exterior-2026-04.jpg)"
+    },
+    {
+      "id": "gal-grill-pavilion",
+      "title": "Point & Kill Outdoor Grill Pavilion",
+      "category": "Outdoor dining and terrace",
+      "image": "/images/restaurant/chop-n-chill-point-and-kill-grill-pavilion.jpg",
+      "alt": "Timber Point & Kill @ Chop 'n Chill outdoor pavilion advertising grilled catfish beside the main Kasoa restaurant terrace",
+      "caption": "Timber Point & Kill grill station on the Kasoa courtyard frontage. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "portrait",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (r549-Chop-n-Chill-Kasoa-facade.jpg)"
+    },
+    {
+      "id": "gal-interior-bar",
+      "title": "Chilled Beverage Cooler & Interior Lounge",
+      "category": "Restaurant interior",
+      "image": "/images/restaurant/chop-n-chill-interior-beverage-bar.jpg",
+      "alt": "Chop 'n Chill Kasoa interior beverage chiller stocked with chilled drinks alongside stone-tiled floors and wall TV",
+      "caption": "Indoor lounge refreshment cooler and stone-tiled dining hall. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "portrait",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (r118-design-Chop-n-Chill-Kasoa.jpg)"
+    },
+    {
+      "id": "gal-patio-atmosphere",
+      "title": "After-Dark Lounge Lighting & Patio Tables",
+      "category": "Restaurant atmosphere",
+      "image": "/images/restaurant/chop-n-chill-outdoor-patio-lounge-night.jpg",
+      "alt": "Guests gathered on Chop 'n Chill Kasoa's covered patio under purple-blue evening lounge lights with the band stage in the distance",
+      "caption": "Evening lounge atmosphere under violet-blue patio lighting. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "portrait",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (r06d-Chop-n-Chill-Kasoa-interior.jpg)"
+    },
+    {
+      "id": "gal-evening-seating",
+      "title": "Evening Social Seating & Lounge Glow",
+      "category": "Restaurant atmosphere",
+      "image": "/images/restaurant/chop-n-chill-evening-seating-atmosphere.jpg",
+      "alt": "Evening guests seated at covered patio tables looking toward Chop 'n Chill's warm indoor dining room",
+      "caption": "Covered terrace social seating between the outdoor lounge and indoor dining hall. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "portrait",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (rabe-Chop-n-Chill-Kasoa-interior-2026-04.jpg)"
+    },
+    {
+      "id": "gal-bar-drinks",
+      "title": "Chilled Citrus & Mint Bar Cocktails",
+      "category": "Drinks and refreshments",
+      "image": "/images/restaurant/chop-n-chill-chilled-bar-cocktails.jpg",
+      "alt": "Three tall iced citrus and mint lounge cocktails served on the bar mat at Chop 'n Chill Kasoa",
+      "caption": "Refreshing iced citrus and mint beverages prepared at the lounge bar. Archive photo — confirm owner rights before commercial publication.",
+      "orientation": "square",
+      "isVerifiedVenuePhoto": false,
+      "requiresPermission": true,
+      "sourceNote": "Restaurant Guru / Google archive (re36-Chop-n-Chill-Kasoa-food.jpg)"
     }
   ],
   "faqs": [

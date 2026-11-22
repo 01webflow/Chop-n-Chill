@@ -1,6 +1,7 @@
 import { Phone, Plus, Search, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
+import { resolvePublicAssetUrl } from '../lib/assets';
 import { MENU_CATEGORIES, MenuCategory, MenuItem } from '../types';
 
 interface MenuSectionProps {
@@ -140,24 +141,43 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
               >
                 <div className="relative aspect-[4/3] bg-[#141414] overflow-hidden">
                   {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={`${item.name} (${item.imageVerified ? 'Chop n Chill photo' : 'Illustrative dish photo'})`}
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-                    />
+                    <>
+                      <img
+                        src={resolvePublicAssetUrl(item.image)}
+                        alt={
+                          item.category === 'Drinks & Beverages'
+                            ? `${item.name} — Three tall iced citrus and mint lounge beverages at Chop 'n Chill Kasoa`
+                            : `${item.name} at Chop 'n Chill Restaurant & Lounge, Kasoa`
+                        }
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.05]"
+                      />
+                      {!item.imageVerified && (
+                        <span className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-sm bg-[#101010]/85 border border-[#C9A45C]/35 text-[10px] font-medium uppercase tracking-[0.12em] text-[#DFC082]">
+                          Archive Photo · Confirm Rights
+                        </span>
+                      )}
+                    </>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-[#1C1C1C] to-[#173C30]/40">
-                      <UtensilsCrossed className="w-7 h-7 text-[#C9A45C] mb-2" />
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-[#1C1C1C] via-[#151A18] to-[#173C30]/35 border-b border-[#F8F4EC]/5">
+                      <div className="w-12 h-12 rounded-full border border-[#C9A45C]/30 bg-[#101010]/70 flex items-center justify-center mb-3">
+                        <UtensilsCrossed className="w-5 h-5 text-[#C9A45C]" />
+                      </div>
                       <span className="font-display text-lg text-[#F8F4EC]">{item.name}</span>
-                      <span className="text-xs text-[#9A9282] mt-1">Photo slot editable in Owner Portal</span>
+                      <span className="text-[11px] uppercase tracking-[0.12em] text-[#C9A45C] mt-1.5">
+                        {item.isFavourite ? 'Customer Favourite · Photo Pending' : 'Kitchen Photo Pending'}
+                      </span>
+                      <span className="text-xs text-[#9A9282] mt-1 max-w-[230px]">
+                        Upload verified kitchen photography in the Owner Portal
+                      </span>
                     </div>
                   )}
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
-                      background: 'linear-gradient(to top, rgba(16,16,16,0.72) 0%, transparent 48%)',
+                      background: 'linear-gradient(to top, rgba(16,16,16,0.68) 0%, transparent 48%)',
                     }}
                   />
                 </div>
