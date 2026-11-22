@@ -4,12 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(({command, mode}) => {
-  const isGhPages =
-    process.env.GITHUB_PAGES === 'true' ||
-    process.env.GITHUB_ACTIONS === 'true' ||
-    mode === 'gh-pages';
-  const base = command === 'serve' ? '/' : isGhPages ? '/Chop-n-Chill/' : './';
+export default defineConfig(({command}) => {
+  const base = command === 'serve' ? '/' : process.env.VITE_BASE_PATH || './';
 
   return {
     base,

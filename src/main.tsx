@@ -5,7 +5,13 @@ import {ErrorBoundary} from './components/ErrorBoundary.tsx';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
-  <ErrorBoundary>
+  <ErrorBoundary
+    onReset={() => {
+      if (window.location.hash && window.location.hash !== '#/') {
+        window.location.hash = '#/';
+      }
+    }}
+  >
     <HashRouter>
       <App />
     </HashRouter>
