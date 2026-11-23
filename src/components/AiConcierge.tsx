@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { FormEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isStaticGitHubPagesHost } from '../lib/runtime';
 import { AiPublicConfig, RestaurantSettings } from '../types';
 import type { OrbState } from './three/AiOrb3D';
 
@@ -237,6 +238,7 @@ export function AiConcierge({
   aiPublicConfig,
   externalOpenSignal = 0,
 }: AiConciergeProps) {
+  const staticHost = isStaticGitHubPagesHost();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'chat' | 'voice'>('chat');
   const [sessionId, setSessionId] = useState(() => `web-${Math.random().toString(36).slice(2, 10)}`);
@@ -585,6 +587,33 @@ export function AiConcierge({
     const nextHistory = [...messages, userMsg];
     setMessages(nextHistory);
     setInput('');
+
+    if (staticHost) {
+      const q = trimmed.toLowerCase();
+      const waDigits = settings.whatsappNumber.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${waDigits}?text=${encodeURIComponent(
+        `Hello Chop 'n Chill Kasoa, enquiry: ${trimmed}`
+      )}`;
+      let reply = `We're located at ${settings.address} (Kasoa, Ghana). You can explore our full menu, gallery, and reservation request form on this page, or reach our host desk directly on ${settings.phone}.`;
+      if (q.includes('hour') || q.includes('open') || q.includes('location') || q.includes('where')) {
+        reply = `Location: ${settings.address} (Google Maps: ${settings.googleMapsUrl}). Hours: ${settings.openingHours}`;
+      } else if (q.includes('menu') || q.includes('food') || q.includes('dish') || q.includes('jollof') || q.includes('banku')) {
+        reply = `Guest favourites include Banku with Grilled Fish, Assorted Fried Rice, Assorted Jollof Rice, Chicken Kebab, and Samosas. Open the Menu page to filter dishes and build an Order Enquiry Tray, or call ${settings.phone} for today's GH₵ pricing.`;
+      } else if (q.includes('book') || q.includes('table') || q.includes('reserv') || q.includes('terrace')) {
+        reply = `We offer Indoor Dining, Outdoor Dining, and an Upstairs Terrace. Submit a pending table request anytime on the Reservations page or message our host team directly on WhatsApp (${settings.phone}).`;
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `a-${Date.now()}`,
+          role: 'assistant',
+          text: `${reply}\n\nNote: Live AI chat responses run on our full-stack server; on static preview you can connect instantly via WhatsApp or phone.`,
+          whatsappUrl,
+        },
+      ]);
+      return;
+    }
+
     setSending(true);
 
     try {
@@ -658,6 +687,17 @@ export function AiConcierge({
   };
 
   const handleRequestHumanStaff = async () => {
+    if (staticHost) {
+      const waDigits = settings.whatsappNumber.replace(/\D/g, '');
+      setHandoffState({
+        loading: false,
+        doneId: 'DIRECT-CONTACT',
+        whatsappUrl: `https://wa.me/${waDigits}?text=${encodeURIComponent(
+          "Hello Chop 'n Chill Kasoa, I would like to speak with staff."
+        )}`,
+      });
+      return;
+    }
     setHandoffState({ loading: true });
     const summaryText = messages
       .slice(-6)
@@ -818,6 +858,15 @@ export function AiConcierge({
     stopSpeechDictation(true);
     setMicConsentOpen(false);
     setVoiceError('');
+
+    if (staticHost) {
+      const msg =
+        'Real-time Live Voice requires the full-stack backend server and is not available on static GitHub Pages hosting. Please use WhatsApp or call us directly.';
+      setVoiceError(msg);
+      setVoiceStage('IDLE');
+      updateDiagnostics({ lastError: msg });
+      return;
+    }
 
     if (!aiPublicConfig.voiceEnabled) {
       const msg = 'Live voice interaction is currently disabled by Chop n Chill management.';
@@ -1369,7 +1418,42 @@ export function AiConcierge({
             {mode === 'voice' ? (
               <div className="flex-1 overflow-y-auto p-5 flex flex-col justify-between gap-4">
                 <div className="space-y-4">
-                  {!aiPublicConfig.voiceEnabled ? (
+                  {staticHost ? (
+                    <div className="p-4 rounded-sm bg-[#1C1C1C] border border-[#C9A45C]/35 space-y-3 text-sm text-[#C8BFA8]">
+                      <p className="font-semibold text-[#F8F4EC]">
+                        Live Voice Unavailable on Static Hosting
+                      </p>
+                      <p className="text-xs leading-relaxed">
+                        Real-time Gemini Live Voice streams audio through a dedicated WebSocket backend server, which is not active on static GitHub Pages. You can still use{' '}
+                        <button
+                          type="button"
+                          onClick={() => setMode('chat')}
+                          className="text-[#DFC082] underline"
+                        >
+                          Concierge Chat
+                        </button>
+                        , send a WhatsApp enquiry, or call our Kasoa host desk directly.
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <a
+                          href={`https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-sm bg-[#173C30] border border-[#C9A45C]/45 text-xs font-semibold text-[#F8F4EC] hover:bg-[#1E4D3E]"
+                        >
+                          <span>WhatsApp Staff</span>
+                          <ExternalLink className="w-3.5 h-3.5 text-[#DFC082]" />
+                        </a>
+                        <a
+                          href={`tel:${settings.phone.replace(/\s+/g, '')}`}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-sm border border-[#C9A45C]/45 text-xs font-semibold text-[#DFC082] hover:border-[#C9A45C]"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>Call {settings.phone}</span>
+                        </a>
+                      </div>
+                    </div>
+                  ) : !aiPublicConfig.voiceEnabled ? (
                     <div className="p-4 rounded-sm bg-[#1C1C1C] border border-[#C9A45C]/30 text-sm text-[#C8BFA8]">
                       Voice interaction has been paused by Chop 'n Chill management. Please switch to{' '}
                       <button

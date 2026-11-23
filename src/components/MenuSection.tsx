@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
 import { resolvePublicAssetUrl } from '../lib/assets';
 import { MENU_CATEGORIES, MenuCategory, MenuItem } from '../types';
+import { LazyImage } from './LazyImage';
 
 interface MenuSectionProps {
   menu: MenuItem[];
@@ -142,7 +143,7 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
                 <div className="relative aspect-[4/3] bg-[#141414] overflow-hidden">
                   {item.image ? (
                     <>
-                      <img
+                      <LazyImage
                         src={resolvePublicAssetUrl(item.image)}
                         alt={
                           item.category === 'Drinks & Beverages'
@@ -150,8 +151,6 @@ export function MenuSection({ menu, phone, trayCount, onAddToTray, onOpenTray }:
                             : `${item.name} at Chop 'n Chill Restaurant & Lounge, Kasoa`
                         }
                         referrerPolicy="no-referrer"
-                        loading="lazy"
-                        decoding="async"
                         className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.05]"
                       />
                       {!item.imageVerified && (

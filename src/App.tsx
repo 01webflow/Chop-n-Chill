@@ -18,13 +18,8 @@ import { ReservationsSection } from './components/ReservationsSection';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import { DEFAULT_PUBLIC_STORE } from './data/defaultPublicStore';
 import { resolvePublicAssetUrl } from './lib/assets';
+import { isStaticGitHubPagesHost } from './lib/runtime';
 import { MenuItem, PublicStorePayload } from './types';
-
-function isStaticGitHubPagesHost(): boolean {
-  if (typeof window === 'undefined') return false;
-  const host = window.location.hostname.toLowerCase();
-  return host === 'github.io' || host.endsWith('.github.io');
-}
 
 const HERO_IMAGE = resolvePublicAssetUrl('/images/restaurant/chop-n-chill-exterior-night-lights.jpg');
 const ABOUT_IMAGE = resolvePublicAssetUrl('/images/restaurant/chop-n-chill-exterior-day-terrace.jpg');

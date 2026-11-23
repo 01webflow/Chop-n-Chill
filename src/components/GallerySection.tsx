@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import { resolvePublicAssetUrl } from '../lib/assets';
 import { GalleryItem } from '../types';
+import { LazyImage } from './LazyImage';
 
 interface GallerySectionProps {
   gallery: GalleryItem[];
@@ -118,12 +119,10 @@ export function GallerySection({ gallery }: GallerySectionProps) {
                   item
                 )}`}
               >
-                <img
+                <LazyImage
                   src={resolvePublicAssetUrl(item.image)}
                   alt={item.alt || item.title}
                   referrerPolicy="no-referrer"
-                  loading="lazy"
-                  decoding="async"
                   className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.04]"
                 />
                 <div
